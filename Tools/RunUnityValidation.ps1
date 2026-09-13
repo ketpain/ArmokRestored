@@ -3,6 +3,7 @@ param(
     [string]$UnityPath,
     [ValidateSet('PrepareContent', 'EditMode', 'PlayMode')][string]$Mode = 'PrepareContent',
     [string]$TestFilter = 'Armok.Tests',
+    [string]$TestAssembly,
     [string]$ReportDirectory
 )
 
@@ -19,7 +20,11 @@ $arguments = @('-batchmode', '-projectPath', ('"' + $projectRoot + '"'), '-logFi
 if ($Mode -eq 'PrepareContent') {
     $arguments += @('-quit', '-executeMethod', 'Armok.Editor.ProjectValidation.PrepareContent')
 } else {
-    $arguments += @('-runTests', '-testPlatform', $Mode, '-testFilter', ('"' + $TestFilter + '"'),
+    if (-not $TestAssembly) {
+        if ($Mode -eq 'EditMode') { $TestAssembly = 'Armok.Content.Tests' }
+        else { $TestAssembly = 'Armok.Input.Tests' }
+    }
+    $arguments += @('-runTests', '-testPlatform', $Mode, '-assemblyNames', ('"' + $TestAssembly + '"'), '-testFilter', ('"' + $TestFilter + '"'),
         '-testResults', ('"' + (Join-Path $reportRoot 'results.xml') + '"'))
 }
 

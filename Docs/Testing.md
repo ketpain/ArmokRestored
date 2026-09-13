@@ -17,9 +17,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Tools/RunUnityValidation.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File Tools/RunUnityValidation.ps1 -Mode PlayMode
 ```
 
-The default test filter is `Armok.Tests`; it excludes the separate `Armok.LiveTests` namespace. Add `-Mode EditMode -TestFilter Armok.LiveTests` to run the live smoke test. `-ProjectPath`, `-UnityPath`, and `-ReportDirectory` override their defaults. The helper records the actual Unity process exit code in `process-result.json` and writes test results to `results.xml`.
+The helper explicitly selects `Armok.Content.Tests` for Edit Mode and `Armok.Input.Tests` for Play Mode, with test filter `Armok.Tests`. This keeps live tests out of offline runs even when matching parent suites. Add `-Mode EditMode -TestAssembly Armok.Tests.Editor -TestFilter Armok.LiveTests` to run the live smoke test. `-ProjectPath`, `-UnityPath`, and `-ReportDirectory` override their defaults. The helper records the actual Unity process exit code in `process-result.json` and writes test results to `results.xml`.
 
-The equivalent Unity test arguments are `-batchmode -runTests -testPlatform EditMode -testFilter Armok.Tests -testResults <xml-path> -projectPath <checkout> -logFile <log-path>`. Use `PlayMode` for input tests. Do not add `-quit` to a test run; let the Test Framework finish and exit. Content preparation uses the separate `-Mode PrepareContent` path.
+The equivalent Unity test arguments are `-batchmode -runTests -testPlatform EditMode -assemblyNames Armok.Content.Tests -testFilter Armok.Tests -testResults <xml-path> -projectPath <checkout> -logFile <log-path>`. Use `PlayMode` and assembly `Armok.Input.Tests` for input tests. Do not add `-quit` to a test run; let the Test Framework finish and exit. Content preparation uses the separate `-Mode PrepareContent` path.
 
 ## What is covered
 
@@ -32,7 +32,7 @@ The equivalent Unity test arguments are `-batchmode -runTests -testPlatform Edit
 
 Cache tests use unique test-owned directories and destroy all textures they create. Unsupported graphics environments report those tests as skipped. A missing DF endpoint or unsaved scene skips the live test. A skipped test is not a successful integration check; inspect the pass/fail/skip counts.
 
-The input tests restrict their cloned action map to synthetic devices and restore the previously current keyboard/mouse. They do not change the project's action asset. The live test restores open scenes, reload settings, and the temporary background-update setting after completion or failure.
+The input tests restrict their cloned action map to synthetic devices and restore the previously current keyboard/mouse. They temporarily use a cloned input-settings object that processes events without editor focus, allowing the same checks in batch mode, then restore the original settings and background-update behavior. They do not change the project's action asset. The live test restores open scenes, reload settings, and the temporary background-update setting after completion or failure.
 
 ## Current assembly boundaries
 

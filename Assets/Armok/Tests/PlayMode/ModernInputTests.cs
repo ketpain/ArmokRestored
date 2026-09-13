@@ -13,6 +13,9 @@ namespace Armok.Tests
         private Mouse mouse;
         private Keyboard originalKeyboard;
         private Mouse originalMouse;
+        private InputSettings originalSettings;
+        private InputSettings testSettings;
+        private bool originalRunInBackground;
 
         [SetUp]
         public void Setup()
@@ -21,6 +24,16 @@ namespace Armok.Tests
             Assert.That(projectActions, Is.Not.Null, "Assign the project's Input Actions asset.");
             originalKeyboard = Keyboard.current;
             originalMouse = Mouse.current;
+            originalSettings = InputSystem.settings;
+            originalRunInBackground = Application.runInBackground;
+            testSettings = Object.Instantiate(originalSettings);
+            testSettings.hideFlags = HideFlags.HideAndDontSave;
+            testSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+#if UNITY_EDITOR
+            testSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+#endif
+            InputSystem.settings = testSettings;
+            Application.runInBackground = true;
             map = projectActions.FindActionMap("Armok", true).Clone();
             keyboard = InputSystem.AddDevice<Keyboard>();
             mouse = InputSystem.AddDevice<Mouse>();
@@ -37,6 +50,13 @@ namespace Armok.Tests
             if (mouse != null && mouse.added) InputSystem.RemoveDevice(mouse);
             if (originalKeyboard != null && originalKeyboard.added) originalKeyboard.MakeCurrent();
             if (originalMouse != null && originalMouse.added) originalMouse.MakeCurrent();
+            if (testSettings != null)
+            {
+                InputSystem.settings = originalSettings;
+                Object.DestroyImmediate(testSettings);
+                testSettings = null;
+                Application.runInBackground = originalRunInBackground;
+            }
         }
 
         // The cloned map is restricted to these synthetic devices. Preserve the
