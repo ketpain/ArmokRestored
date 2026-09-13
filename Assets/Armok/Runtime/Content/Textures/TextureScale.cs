@@ -1,4 +1,4 @@
-// Only works on textures that are marked readable and support SetPixels.
+// Texture overloads require readable textures that support SetPixels.
 
 using System;
 using System.Threading.Tasks;

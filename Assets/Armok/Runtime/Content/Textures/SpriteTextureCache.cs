@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using DFHack;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -34,7 +33,7 @@ internal sealed class SpriteTextureCache
         CachePath = Path.Combine(directory, BitConverter.ToString(identity).Replace("-", "") + ".bin");
     }
 
-    internal byte[] Fingerprint(int tileWidth, int tileHeight, int pageHeight, IList<DFCoord2d> coordinates)
+    internal byte[] Fingerprint(int tileWidth, int tileHeight, int pageHeight, IList<Vector2Int> coordinates)
     {
         using (var stream = new MemoryStream())
         {

@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13
 
-Status: Implementation started. Phase 0 baseline preparation is in progress; later phases remain pending.
+Status: Phase 0 complete. Phase 1 implementation and editor validation are complete; command-line verification in the isolated checkout is in progress. Phases 2-6 remain pending.
 
 ## Objective
 
@@ -58,15 +58,15 @@ Acceptance:
 
 Priority: First implementation milestone. Dependencies: Phase 0.
 
-- [ ] Review the existing validation helpers under `Logs/LoadingPerformance-20260913-173013/` and the prior input/rendering validation artifacts. Extract reusable checks and small fixtures; leave machine-specific automation and large reports outside the test suite.
-- [ ] Map the minimum compilation dependencies needed for those tests. `TextureScale` and `ArmokInput` currently participate in Unity's first-pass compilation through special folders.
-- [ ] Establish the smallest necessary production/test assembly boundary for the targeted helpers. Custom test assemblies cannot directly reference types left in Unity's predefined assemblies; avoid adding an assembly definition over all of `Assets/Scripts` as a shortcut.
-- [ ] Add Edit Mode tests for texture resizing: fixed expected samples/output, up/down scaling, same-size behavior, one-pixel dimensions, invalid dimensions, and concurrent independent calls where supported.
-- [ ] Add graphics-capable tests for cache round trips at every mip level, source/layout invalidation, corrupt/truncated entries, unavailable storage, and replacement of invalid entries. Use a unique test-owned directory and clean up created textures/files.
-- [ ] Maintain modern input checks for action availability, representative keyboard/mouse bindings, button edges, and device removal using simulated input devices.
-- [ ] Add an automated editor integration check that starts/stops Play at least three times with the current reload settings and detects duplicate initialization, stale callbacks, unexpected exceptions, and surviving workers. Keep the test's orchestration alive across Play transitions and restore editor settings afterward.
-- [ ] Separate tests that need no DF process from live DF smoke checks. Add a controlled connection substitute as the connection boundary is extracted in Phase 2.
-- [ ] Document how to run the tests from the editor and command line, including graphics/device requirements. Tests requiring a graphics device should report an explicit limitation on unsuitable runners.
+- [x] Review the existing validation helpers under `Logs/LoadingPerformance-20260913-173013/` and the prior input/rendering validation artifacts. Extract reusable checks and small fixtures; leave machine-specific automation and large reports outside the test suite.
+- [x] Map the minimum compilation dependencies needed for those tests. `TextureScale` and `ArmokInput` currently participate in Unity's first-pass compilation through special folders.
+- [x] Establish the smallest necessary production/test assembly boundary for the targeted helpers. Custom test assemblies cannot directly reference types left in Unity's predefined assemblies; avoid adding an assembly definition over all of `Assets/Scripts` as a shortcut.
+- [x] Add Edit Mode tests for texture resizing: fixed expected samples/output, up/down scaling, same-size behavior, one-pixel dimensions, invalid dimensions, and concurrent independent calls where supported.
+- [x] Add graphics-capable tests for cache round trips at every mip level, source/layout invalidation, corrupt/truncated entries, unavailable storage, and replacement of invalid entries. Use a unique test-owned directory and clean up created textures/files.
+- [x] Maintain modern input checks for action availability, representative keyboard/mouse bindings, button edges, and device removal using simulated input devices.
+- [x] Add an automated editor integration check that starts/stops Play at least three times with the current reload settings and detects duplicate initialization, stale callbacks, unexpected exceptions, and surviving workers. Keep the test's orchestration alive across Play transitions and restore editor settings afterward.
+- [x] Separate tests that need no DF process from live DF smoke checks. Controlled connection substitutes are part of Phase 2 below.
+- [x] Document how to run the tests from the editor and command line, including graphics/device requirements. Tests requiring a graphics device should report an explicit limitation on unsuitable runners.
 
 Acceptance:
 
@@ -85,7 +85,7 @@ Primary files: `DFConnection.cs`, `ContentLoader.cs`, `GameMap.cs`, and `Meshing
 - [ ] Introduce a small application/session coordinator with explicit stages such as `Disconnected`, `Connecting`, `LoadingContent`, `Ready`, `Stopping`, and `Failed`. Keep DF suspension and application loading states distinct.
 - [ ] Give each stage a clear completion/failure result. Drive loading status through a progress interface/event so the loader does not need to manipulate help panels or unrelated scene UI.
 - [ ] Move session-scoped callbacks and state under the coordinator's ownership. Make registration/removal and repeated initialization explicit; clear state consistently with reload enabled or disabled.
-- [ ] Begin separating the RPC/polling client from the `DFConnection` scene component. Expose the small connection operations needed by startup and tests without creating a broad abstraction framework.
+- [ ] Begin separating the RPC/polling client from the `DFConnection` scene component. Expose the small connection operations needed by startup and tests without creating a broad abstraction framework. Add a controlled connection substitute for offline lifecycle/failure tests.
 - [ ] Replace `Thread.Abort()` in network and meshing shutdown with cooperative cancellation. Wake sleeping workers and provide bounded socket waits/interruption for blocked network calls; cancellation alone cannot unblock a synchronous read.
 - [ ] Pair DF suspend/resume operations with exception-safe cleanup. Define behavior when a disconnect prevents a resume acknowledgement and test it using a controlled peer.
 - [ ] Ensure workers finish or acknowledge cancellation before their data and Unity-facing owners are disposed. An old session must never clear or dispose a newer session's connection/state.
@@ -214,7 +214,7 @@ Do not combine all slices into one change. Preserve a verified checkpoint before
 ## Progress record
 
 - 2026-09-13: Reviewed the core architecture and documented this phased plan. No runtime, asset, or project-setting changes were made as part of the planning task.
-- Baseline revision: `a4568e1` saved; isolated checkout found an overbroad `Obj/` ignore rule excluding six OBJ exporter source files. A follow-up correction and repeat validation are in progress.
+- Baseline revision: `a78ae7f` (baseline `a4568e1` plus the fresh-checkout OBJ-source correction). Isolated import/compile and material generation passed with Unity exit code 0.
 - First implementation milestone: Pending Phases 0–2.
 
 References: [Unity assembly organization](https://docs.unity3d.com/6000.0/Documentation/Manual/assembly-definitions-intro.html), [Unity assembly references](https://docs.unity3d.com/6000.0/Documentation/Manual/assembly-definitions-referencing.html), and [Microsoft thread cancellation guidance](https://learn.microsoft.com/en-us/dotnet/standard/threading/destroying-threads).
@@ -227,3 +227,13 @@ References: [Unity assembly organization](https://docs.unity3d.com/6000.0/Docume
 - Added `Tools/VerifyCheckout.ps1`, `Docs/Development.md`, and the offline Unity content-preparation entry point `Armok.Editor.ProjectValidation.PrepareContent`. Checkout preflight passed over 11,773 files.
 - Local live smoke context: Map Mode scene, PC quality preset, Unity 6000.6.0f1, current local DF fortress fixture. Prior DF/plugin versions and warm/cold timing limitations are recorded above; new live verification is still pending.
 - Fresh-checkout validation caught six exporter C# files (and their metadata) excluded by the legacy `Obj/` rule. Narrowed it to the root build-output folder and extended preflight to detect ignored C# source.
+
+### Phase 1 implementation evidence
+
+- Introduced only `Armok.Textures` and `Armok.Input` production assemblies; kept all three moved helper metadata files/GUIDs unchanged. Cache coordinates now use `Vector2Int` with an adapter in `TilePage`; persisted fingerprint values and cache version are unchanged.
+- Added maintained content/cache, Play Mode input, and separate live DF characterization tests, plus menu/command-line runners and `Docs/Testing.md`.
+- Final editor validation: content/cache suite 21 passed, input suite 4 passed, live smoke test 1 passed (three Play sessions), no skipped tests. Test cleanup handles the Test Runner's unnamed starting scene and restores editor state.
+- Final live sessions measured 9.4, 9.6, and 8.0 seconds for content loading, reused all 39 cache pages, kept two unique callbacks, and stopped all captured workers. Every color/normal mip hash matched the original 4,271-sprite fixture.
+- Settings and the Input Actions asset remain unchanged. All moved helper `.meta` files match the baseline exactly.
+- `Tools/VerifyCheckout.ps1` passes for the expanded 11,818-file working project. Command-line verification of the new test assemblies in the isolated checkout remains in progress.
+- Fresh baseline validation: standalone Windows editor target; 30 shape slices, 57 pattern slices, and 668 material definitions rebuilt without DF or historical log helpers. Report: `Logs/Maintenance-20260913/fresh-checkout-corrected/process-result.json`.

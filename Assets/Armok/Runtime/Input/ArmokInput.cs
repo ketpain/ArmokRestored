@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Shared by the game and Standard Assets, which compile in the first-pass assembly.
+// Shared by the game and Standard Assets through the auto-referenced Armok.Input assembly.
 public static class ArmokInput
 {
     private static InputActionMap controls;

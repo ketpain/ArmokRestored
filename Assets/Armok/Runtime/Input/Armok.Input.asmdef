@@ -1,0 +1,5 @@
+{
+    "name": "Armok.Input",
+    "references": ["Unity.InputSystem"],
+    "autoReferenced": true
+}

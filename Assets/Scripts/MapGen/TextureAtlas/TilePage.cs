@@ -83,7 +83,9 @@ public class TilePage : ICollection
         int scaleFactor = 1;
         int outputWidth = Mathf.ClosestPowerOfTwo(tileWidth * scaleFactor);
         int outputHeight = Mathf.ClosestPowerOfTwo(tileHeight * scaleFactor);
-        var fingerprint = cache.Fingerprint(tileWidth, tileHeight, pageHeight, coordList);
+        // Keep the graphics cache independent of DF protocol/world types.
+        var fingerprint = cache.Fingerprint(tileWidth, tileHeight, pageHeight,
+            coordList.ConvertAll(coordinate => new Vector2Int(coordinate.x, coordinate.y)));
         var cacheWatch = System.Diagnostics.Stopwatch.StartNew();
         LoadedFromCache = cache.TryLoad(fingerprint, outputWidth, outputHeight, coordList.Count, out tileArray, out normalArray);
         CacheReadMilliseconds = cacheWatch.Elapsed.TotalMilliseconds;

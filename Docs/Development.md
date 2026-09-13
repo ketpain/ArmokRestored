@@ -26,7 +26,7 @@ Record editor version, revision, scene, quality preset, DF/DFHack/plugin version
 
 1. Run `Tools/VerifyCheckout.ps1`, then `git lfs fsck` after committing/restoring the revision being checked.
 2. Confirm editor compilation finishes without errors. Fresh-checkout validation must use a separate checkout with no copied `Library` or local validation helpers.
-3. Verify missing material resources can be generated, then run the maintained regression tests as they are added in Phase 1.
+3. Verify missing material resources can be generated, then run the maintained [regression tests](Testing.md).
 4. With a suitable DF fortress open and DFHack available, enter Map Mode. Confirm connection, material preparation, terrain and creatures, camera controls, pointer/UI input, and absence of unexpected exceptions.
 5. Stop and start Play at least three times. Check that loading callbacks do not multiply, no previous session continues polling/meshing, and stopping produces no new exceptions. Record reload settings and restore any temporary editor options.
 6. For content changes, record cold-cache and warm-cache stage timings separately. Compare sprite pixels at all mip levels against the same fixture when changing texture generation. The content timer excludes imports, compilation, and initial connection and includes yielded frames.
