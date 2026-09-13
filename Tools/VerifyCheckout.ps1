@@ -12,6 +12,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Could not enumerate project files with Git.' }
 
     $fileCount = 0
+    $pathSet = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    foreach ($relativePath in $paths) { $null = $pathSet.Add($relativePath.Replace('\', '/')) }
+    foreach ($source in Get-ChildItem -LiteralPath Assets -Recurse -File -Filter '*.cs') {
+        $relativePath = $source.FullName.Substring($projectRoot.Length + 1).Replace('\', '/')
+        if (-not $pathSet.Contains($relativePath)) { $failures.Add("C# source excluded by ignore rules: $relativePath") }
+    }
     foreach ($relativePath in $paths) {
         $filePath = Join-Path $projectRoot $relativePath
         if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {

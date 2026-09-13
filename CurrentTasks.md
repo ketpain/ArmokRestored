@@ -44,7 +44,7 @@ At review time, Git history contains only the `.gitignore` commit. The restored 
 - [x] Audit the pending files and update ignore rules for machine-specific/generated content, including `UserSettings`. Inspect the root `lfs/` directory before deciding what belongs in version control.
 - [x] Verify Git LFS configuration and that required binary assets contain their actual payloads. Avoid committing duplicate staging copies of LFS objects.
 - [x] Resolve the `Assets/RemoteClientDF-Net` checkout representation: `.gitmodules` declares a submodule, but the restored files must have a reproducible relationship to a pinned revision. Preserve any local changes before choosing a proper submodule checkout or documented vendored copy.
-- [ ] Save the working restoration as a local baseline commit, including required `.meta` files, packages/lock file, project settings, and this plan. Record the revision below. Publishing a remote is separate from this task.
+- [x] Save the working restoration as a local baseline commit, including required `.meta` files, packages/lock file, project settings, and this plan. Record the revision below. Publishing a remote is separate from this task.
 - [x] Document the fresh-checkout steps, generated material prerequisites, and the distinction between required assets and disposable caches.
 - [x] Establish a startup/Play-stop/build smoke-check procedure and record the actual scene, DF fixture, quality level, and cache state used.
 
@@ -214,7 +214,7 @@ Do not combine all slices into one change. Preserve a verified checkpoint before
 ## Progress record
 
 - 2026-09-13: Reviewed the core architecture and documented this phased plan. No runtime, asset, or project-setting changes were made as part of the planning task.
-- Baseline revision: Baseline commit being prepared; isolated-checkout import/compile and content-generation validation still pending.
+- Baseline revision: `a4568e1` saved; isolated checkout found an overbroad `Obj/` ignore rule excluding six OBJ exporter source files. A follow-up correction and repeat validation are in progress.
 - First implementation milestone: Pending Phases 0–2.
 
 References: [Unity assembly organization](https://docs.unity3d.com/6000.0/Documentation/Manual/assembly-definitions-intro.html), [Unity assembly references](https://docs.unity3d.com/6000.0/Documentation/Manual/assembly-definitions-referencing.html), and [Microsoft thread cancellation guidance](https://learn.microsoft.com/en-us/dotnet/standard/threading/destroying-threads).
@@ -226,3 +226,4 @@ References: [Unity assembly organization](https://docs.unity3d.com/6000.0/Docume
 - Vendored DF client matches all 56 pinned upstream files after text encoding/line-ending normalization; removed the stale submodule declaration and documented provenance in `Docs/ThirdParty.md`.
 - Added `Tools/VerifyCheckout.ps1`, `Docs/Development.md`, and the offline Unity content-preparation entry point `Armok.Editor.ProjectValidation.PrepareContent`. Checkout preflight passed over 11,773 files.
 - Local live smoke context: Map Mode scene, PC quality preset, Unity 6000.6.0f1, current local DF fortress fixture. Prior DF/plugin versions and warm/cold timing limitations are recorded above; new live verification is still pending.
+- Fresh-checkout validation caught six exporter C# files (and their metadata) excluded by the legacy `Obj/` rule. Narrowed it to the root build-output folder and extended preflight to detect ignored C# source.
