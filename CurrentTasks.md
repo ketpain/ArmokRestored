@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13
 
-Status: Phase 0 complete. Phase 1 implementation and editor validation are complete; command-line verification in the isolated checkout is in progress. Phases 2-6 remain pending.
+Status: Phases 0 and 1 complete and verified. Phase 2 (session startup/shutdown ownership) is next; Phases 2-6 remain pending.
 
 ## Objective
 
@@ -235,5 +235,13 @@ References: [Unity assembly organization](https://docs.unity3d.com/6000.0/Docume
 - Final editor validation: content/cache suite 21 passed, input suite 4 passed, live smoke test 1 passed (three Play sessions), no skipped tests. Test cleanup handles the Test Runner's unnamed starting scene and restores editor state.
 - Final live sessions measured 9.4, 9.6, and 8.0 seconds for content loading, reused all 39 cache pages, kept two unique callbacks, and stopped all captured workers. Every color/normal mip hash matched the original 4,271-sprite fixture.
 - Settings and the Input Actions asset remain unchanged. All moved helper `.meta` files match the baseline exactly.
-- `Tools/VerifyCheckout.ps1` passes for the expanded 11,818-file working project. Command-line verification of the new test assemblies in the isolated checkout remains in progress.
+- `Tools/VerifyCheckout.ps1` passes for the expanded 11,818-file working project. Isolated-checkout command-line runs passed: 21 content/cache tests and 4 input tests, zero skips, Unity exit code 0 for both.
 - Fresh baseline validation: standalone Windows editor target; 30 shape slices, 57 pattern slices, and 668 material definitions rebuilt without DF or historical log helpers. Report: `Logs/Maintenance-20260913/fresh-checkout-corrected/process-result.json`.
+
+### Completed checkpoint
+
+- Source/dependency baseline: `a78ae7f` (including the OBJ-source ignore-rule correction).
+- Regression infrastructure: `a400d33`; batch-mode portability and input-settings cleanup: `b7f648a`, `c3f5b66`.
+- Final validation: all 26 editor tests passed, including the live test covering three Play sessions. Offline command-line suites passed independently in the isolated checkout. Input, rendering, package, and reload settings in the working project are unchanged.
+- Final local evidence: `Logs/Maintenance-20260913/phase1-final-results.json`; repeatable instructions and test scope: `Docs/Testing.md`.
+- Next task: characterize session failure/shutdown paths, then implement cooperative worker cancellation and explicit startup ownership under Phase 2. Windows player builds and broader class/folder extraction remain pending as listed above.
