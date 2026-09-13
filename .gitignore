@@ -51,3 +51,11 @@ Assets/Resources/ItemRaws.asset.meta
 Assets/Resources/CreatureRaws.asset.meta
 Assets/Resources/CreatureRaws.asset
 Logs/
+
+# Local editor preferences and dependency-recovery staging.
+/UserSettings/
+/lfs/
+/Builds/
+/TestResults/
+*.stackdump
+*.tmp

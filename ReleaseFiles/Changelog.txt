@@ -1,0 +1,279 @@
+v0.21.0
+ * Fixed compatibility with DF 0.47.04 and upwards.
+ * Fixed some shader errors that probably only I care about.
+ * Added skirts, stockings, and corsets, for the succubus mod.
+ * Tweaked the camera movement speeds.
+ * Added digitigrade legs for humanoids with hooves.
+ * Added models for saltwater crocodile men.
+ * Mozaic censor field can now be turned off if desired.
+ * Fix a longstanding shader bug that would cause normal maps to look... off.
+ * added a very basic 4-legged animal body. Not nearly finished, but possibly better than blocks?
+ * Improved the sky shader. Have proper moon phases now.
+ * added some dog body parts, but not enough to make a complete dog.
+ * Added a system to allow modelers to just have a single model for multiple body parts, if desired.
+ * Changed the way jewelry is displayed to show every single item of jewelry on a person.
+
+v0.20.2
+ * Added nightwing model
+ * Allow setting an IP address for connecting to DF on another computer or VM
+ * Show a warning if a fort isn't loaded.
+ * Added models for gloves and blucklers.
+ * Added models for helmets.
+ * Hopefully fix plugin updates for mac.
+ * Check online for updates.
+ * Fix screen following with TWBT enabled.
+
+v0.20.1
+ * Dismemberment now happens.
+ * Improved some clothing.
+ * Added instruments.
+
+v0.20.0
+ * Changes the shaders to use a bit faster color blending
+ * Use larger blocks from DF, to reduce the number of draw calls, resulting in better render speed at the expense of load speed.
+ * Don't cut holes in the terrain outside the fort.
+ * Lots of speed optimizations regarding creatures and items.
+ * Added a fortress mode menu that updates to follow the ingame menu. Currently only does buildings and digging.
+ * Added 3D creatures. These can be disabled in the config file.
+
+v0.19.1
+ * Added onscreen announcements.
+ * Finetuned map update rate
+ * Show units in finer, sub-tile positions, when available.
+ * Overhauled the item model system, bringing them back again.
+ * Added many new item models.
+ * Added many new building models.
+ * Fixed the options menu being covered by the dig panel.
+ * Added very basic adventure mode movement. Needs much improvement to be very useful.
+ * Added support for projectiles and other flung items.
+ * Fixed a hang from too many blocks being processed at once.
+ * Allowed container buildings to show contained items, depending on the building type.
+ * Allow items to display improvements on them. Not all items have required artwork, but the code is there.
+ * Display engravings and other image types from DF.
+ * Fixed different plant types all having the same sprite.
+ * Made rotten items black.
+ * Adjusted item sprites to be above stockpiles.
+ * Removed shadows from world map rivers that were always falling onto the fortress.
+ * Added build date to builds, for logging purposes.
+ * Added particle systems for DF Flows, including miasma, fire breath, etc.
+ * Added more debug info dumping.
+ * Made spider web sprites distinct from regular silk thread sprites.
+ * Added basic ocean waves.
+ * Added a discord button.
+
+v0.18.0
+ * New creature sprites that show skin color and equipment.
+ * Centralized the material color lookup, to make sure everything is on the same page, so to speak.
+ * Adjusted a few materials.
+ * Made a basic system for setting sprites for generated creatures. Needs more work, and about 200 sprites.
+ * Many new creature sprites, using the new sprite system.
+ * Made the startup loading function respond better, rather than freezing the entire program.
+ * Updated unity version to 2017.2
+ * Fixed some crashes when plants have a material index of -1
+ * Added a button to toggle the minimap.
+ * Fix some adventure mode errors.
+ * Fix following the DF view in adventure mode.
+ * Fix rendering hidden fun stuff in adventure mode.
+ * Brought back the side view distance behavior.
+ * Made the low-detail terrain render instead of the infinite hole of doom.
+
+v0.17.1
+ * Fixed buildings not removing themselved when they're removed from DF. This made Adventure mode unusable.
+ * Changed how material textures and colors are stored, leading to more ease of material creation. Now they are stored inside the unity archive itself, rather than separately.
+ * Added shadows to transparent geometry.
+ * Made all objects built from transparent materials actually appear transparent.
+ * Improved textures for many materials, most notably gems.
+ * Made units riding other units appear on top of the units they're riding.
+ * Improved gem windows
+ * Added hatch cover model back.
+ * Made buildings rotate properly again.
+ * Some performance improvements.
+
+v0.17.0
+ * Fixed some creature-related bugs
+ * Save Armok Vision, DFHack, and DF versions to the log file, for debugging.
+ * Disable Item rendering, temporarily, due to performance issues. To be brought back in a later version.
+ * Add in optional analytics, if users so desire.
+ * Completely overhauled the building rendering code, enabling better control over buildings, and more customization options. Also slightly faster loading.
+ * Added many new building types, to go with the new rendering mode, including some from artist @mana
+ * Added a yellow hilight to buildings when you hover over them.
+ * Made mechanics mostly respond to active state
+ * Fixed copper being too lightly colored.
+ * Made bridges raise properly according to their state in DF.
+ * Made all buildings not render when too small on screen.
+ * Made many performance optimizations here and there.
+ * Added a minimap, showing an overhead view of the current level.
+ * Added a button to save an enlarged version of the Minimap.
+ * Changed config and screenshots to both go to Documents/Armok Vision.
+ * Added ability to automatically update the DFHack RemoteFortressReader plugin, if the user allows.
+ * Added some friendly messages if Armok Vision can't run for whatever reason.
+
+v0.16.2
+ * Fixed fog.
+ * Made the help menu automatically show only when loading.
+ * Fixed creature sprites so they don't glow in the dark.
+ * Added fake 3D effect to creature sprites.
+
+v0.16.1
+ * Added new nestbox model, made by Ola Tuvesson
+ * Added an onscreen help, togglable by F1
+
+v0.16.0
+ * Removed VR support until a dedicated dev steps forward.
+ * Load creature sprites from DF graphics packs.
+ * Added Gemset creature graphics as a default sprite set.
+ * Made open-air fortifications have a different model.
+ * Added models for menacing spikes, levers, farm plots, roads, weapon racks, and armor stands.
+ * Added a quick feedback mechanism using Stomt.
+ * Fixed some bugs with UI stuff not blocking keyboard input to the rest of the program.
+
+v0.15.0
+ * Use HQ4x scaling on small sprites
+ * Completely new terrain generation system, with rounded corners, and fewer polygons
+ * New terrain texturing system, with smoothly blended textures
+ * Lots of new terrain textures to go with the new system.
+ * New grass textures, including custom textures for evil and good grass.
+ * Added onscreen debug logging.
+ * Added a feedback button in the options menu.
+ * Added a donate button in the options menu.
+ * Added coffin and slab models
+ * Added floating Question marks for unknown buildings.
+
+v 0.14.0
+ * Added basic designation support. Only freehand at the moment. More brush types will come later.
+ * Added support for items on the floor.
+ * Added sprites for all items, and 3D models for several
+ * Added a clock and calandar.
+ * Added a button to pause and resume Dwarf Fortress
+
+v 0.13.1
+ * Use texture arrays instead of texture atlases when available.
+ * Use a single postprocess stack instead of multiple separate effects.
+ * Lighten hidden tiles.
+
+v 0.13.0
+ * Added a loading screen
+ * Removed the mesh generation timer that never worked well.
+ * Show snowfall on the world map.
+ * Added a simple hardware survey.
+
+v 0.12.0
+ * Added support for displaying material spatters, including blood, vomit, fallen leaves, mud, snow, etc.
+ * Added a few more options to the esc menu, including camera stuff.
+ * Brought back the old first person camera, and added a key to switch between floating and walking cameras. Default is C.
+ * Fixed a set of bugs that caused the map to not render when playing a heavily modded Dwarf Fortress.
+ * Added basic VR support. Needs heavy testing. To use it, just start Armok Vision with SteamVR running.
+
+v 0.11.3
+ * More improvements to the automated build process.
+ * Allow the user to instantly turn off distant terrain and clouds, but enabling them stil requires a restart.
+ * Include a manifest.json for pylnp.
+
+v 0.11.2
+ * Made first person mode follow physics rules, turning the user into a visitor of the fortress.
+
+v 0.11.1
+ * Fixed a bug where the outside landscape trees would be different every time.
+ * Added tree color to the very very far terrain.
+ * Fixed scene reflections not respecting time of day.
+
+v 0.11.0
+ * Added new mason's workshop model
+ * Added many temporary workshop models made fron chunky voxels.
+ * Fixed various rendering issues.
+ * Made hidden tiles optional
+ * Added trees and buildings to the world map.
+ * Added a screenshot button. F9 by default.
+ * Added SSAO effect.
+ * Changed textures to use point filtering.
+ * Fixed a bug where panning with the middle button wouldn't turn off following.
+ * Added onscreen settings menu. Press esc to open it.
+
+v 0.10.1
+ * Fixed compatibility with new DFHack plugin.
+
+v 0.10.0
+ * Zooming in and out changes the world size in VR now.
+ * Made hidden areas black
+ * Overhauled the outside world, giving much nicer looking maps
+ * Added rivers to the world map
+ * Added lakes to the world map
+ * Changed some internals relating to tile mesh generation
+ * Made mesh generation always include surrounding tile data
+ * Changed how reflections work.
+ * Show designations
+
+v 0.9.1
+ * Fixed tree foliage textures.
+ * Fixed keyboard not responding on startup.
+ * Made all debug stuff off by default. You can turn it on in the config json file.
+
+v0.9.0
+ * Added a toggle to follow the DF screen. Press F to activate.
+ * You can now press ` to bring in the screen from Dwarf Fortress. Currently rather buggy.
+ * Hidden map tiles are now invisible in Armok Vision. TODO: Make them black.
+ * Models can now have metallic and self illumination maps. Beds temporarily have both.
+ 
+
+v0.8.0
+ * Fixed units showing up when they're caged or off the map
+ * Added creature names above sprites
+ * Added option to export the generated map to collada file, using Ctrl+M. Quite crashy.
+ * Made clouds and distant terrain optional
+ * Trees now show leaves, flowers, and fruits, in their proper times and colors.
+ * Backend stuff related to creatures. Not usable yet.
+ * Performance improvements by Kazimuth
+ * Save various settings to a JSON file that is created on first run.
+ * Remodel tree branches
+ * Added palm leaves to trees that can use them.
+ * Made the sun angle change according to season.
+
+v0.7.2
+ * Fixed time-of-day changing that 0.7.1 broke.
+ * Fixed caged and gone creatures showing up where they're not supposed to.
+
+v0.7.1
+ * Fixed a bug that caused the landscape to not render whenever you moved as an adventurer.
+ * Various performance improvements.
+
+v0.7
+ * Allowed loading up a DF world without a fort loaded, like on the embark screen.
+ * Added support for adventure mode entering and leaving fast travel.
+ * Changed how textures are loded. Alpha maps now go into texture shape, and specular smoothness maps go into the material texture.
+ * Added building support.
+ * Added basic meshes for many, but not all, buildings.
+ * Added support for semitransparent meshes, like glass.
+ * Added a day/night system. Time can be paused by pressing P, and can be moved forward and back with [ and ].
+ * Added optional scaling of unit sprites. Can be toggled with L.
+ * Added ability to toggle shadows from overhead hidden geometry by pressing O.
+ 
+v0.6a
+ * Graceful handling of out-dated Remotefortressreader DFhack plugin.
+ * Optimized filesize
+
+v0.6
+ * improved ramp joining at block borders. Still not fully working.
+ * Added distant terrain and clouds
+ * Fixes for normal map loading
+ * Show basic units, only ascii for now.
+
+v0.5
+ * Added support for loading user-textures
+ * Added many new landscape textures
+ * Added screen-space reflections
+
+v0.4
+ * Added multi-threading for geometry generation and map reading
+ * Fully movable camera
+ * Click the map for debug info
+
+v0.3
+ * Upgrade to unity 5
+ * Added a bunch of pretty effects.
+ * Added a movable camera. Use right click to rotate, and wheel to zoom.
+
+v0.2
+ * Added systems in place for setting tiles according to any combination of material, tiletype, ramp direction, or random variation.
+ * Added some amount of content that uses this.
+ * Added water
+ * Added lava

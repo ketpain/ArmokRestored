@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<designationMeshes>
+    <designationMesh file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+        <designation type="Hidden"/>
+    </designationMesh>
+    <designationMesh file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+        <designation type="Default"/>
+        <subObject file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+            <tiletype token="*:*:TREE_MATERIAL:*:--------" />
+        </subObject>
+        <subObject file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+            <tiletype token="*:*:PLANT:*:--------" />
+        </subObject>
+    </designationMesh>
+    <designationMesh file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+        <designation type="UpDownStairs"/>
+    </designationMesh>
+    <designationMesh file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+        <designation type="Channel"/>
+    </designationMesh>
+    <designationMesh file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+        <designation type="Ramp"/>
+    </designationMesh>
+    <designationMesh file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+        <designation type="UpStairs"/>
+    </designationMesh>
+    <designationMesh file="Designation.obj"
+                metallic="black.png"
+                illumination="Flat_O.png">
+        <designation type="DownStairs"/>
+    </designationMesh>
+</designationMeshes>

@@ -1,0 +1,189 @@
+using UnityEngine;
+using DFHack;
+using UnityEngine.EventSystems;
+
+// Pretty tightly coupled to GameMap, ehhh.
+public class MapSelection : MonoBehaviour
+{
+    public CameraMovement cameraOrigin;
+    public bool debugMode = false;
+
+    public Vector3 dfCoord = new Vector3();
+
+    //private Vector3 mouseWorldPosition = Vector3.zero;
+    private Vector3 mouseWorldPositionPrevious = Vector3.zero;
+    private float mouseWorldPlaneHeight = 0f;
+
+    public Material highlightLineMaterial;
+
+    //Handle mouse dragging here.
+    void Update()
+    {
+        if (!DFConnection.Connected || GameMap.Instance == null || !GameMap.Instance.enabled) return;
+
+        //mouseWorldPosition = GetMouseWorldPosition(ArmokInput.PointerPosition);
+
+        if(DFConnection.Instance.WorldMode != dfproto.GetWorldInfoOut.Mode.MODE_ADVENTURE)
+            UpdateCameraPan();
+
+        if (ArmokInput.Action("Select").IsPressed() && !EventSystem.current.IsPointerOverGameObject())
+        {
+            Ray mouseRay = GetComponent<Camera>().ScreenPointToRay(ArmokInput.PointerPosition);
+
+            DFCoord currentTarget;
+            RaycastHit currentTargetCoords;
+            if (DFConnection.Connected && GameMap.Instance.enabled && MapDataStore.Raycast(mouseRay, out currentTarget, out currentTargetCoords))
+            {
+                GameMap.Instance.cursX = currentTarget.x;
+                GameMap.Instance.cursY = currentTarget.y;
+                GameMap.Instance.cursZ = currentTarget.z;
+            }
+            else
+            {
+                GameMap.Instance.cursX = -30000;
+                GameMap.Instance.cursY = -30000;
+                GameMap.Instance.cursZ = -30000;
+            }
+        }
+    }
+
+    private void UpdateCameraPan()
+    {
+        if (ArmokInput.Action("Pan").WasPressedThisFrame())
+        {
+
+            //Initialize mouse drag pan
+
+            mouseWorldPositionPrevious = GetMouseWorldPosition(ArmokInput.PointerPosition);
+            mouseWorldPlaneHeight = mouseWorldPositionPrevious.y;
+
+        }
+        if (ArmokInput.Action("Pan").IsPressed())
+        {
+
+            //Mouse drag pan
+
+            Vector3 mouseWorldPosition = GetMouseWorldPosition(ArmokInput.PointerPosition, mouseWorldPlaneHeight);
+
+            Vector3 current = new Vector3(mouseWorldPosition.x, 0f, mouseWorldPosition.z);
+            Vector3 previous = new Vector3(mouseWorldPositionPrevious.x, 0f, mouseWorldPositionPrevious.z);
+            Vector3 amount = previous - current;
+            if (amount.sqrMagnitude > 0.001f)
+                cameraOrigin.following = false;
+            cameraOrigin.transform.Translate(previous - current, Space.World);
+            GameMap.Instance.UpdateCenter(cameraOrigin.transform.position);
+
+            mouseWorldPositionPrevious = GetMouseWorldPosition(ArmokInput.PointerPosition, mouseWorldPlaneHeight);
+        }
+    }
+
+    private Vector3 GetMouseWorldPosition(Vector3 mousePosition, float planeHeight)
+    {
+        Plane plane = new Plane(Vector3.up, new Vector3(0f, planeHeight, 0f));
+        Ray ray = GetComponent<Camera>().ScreenPointToRay(mousePosition);
+        float distance;
+        if (plane.Raycast(ray, out distance))
+        {
+            return ray.GetPoint(distance);
+        }
+        return this.mouseWorldPositionPrevious;
+    }
+
+    Vector3 GetMouseWorldPosition(Vector3 mousePosition)
+    {
+        DFCoord dfTarget; //dummy coord to hold things for now.
+        RaycastHit WorldPos;
+        Ray mouseRay = GetComponent<Camera>().ScreenPointToRay(mousePosition);
+        if (!MapDataStore.Raycast(mouseRay, out dfTarget, out WorldPos))
+        {
+            Plane currentPlane = new Plane(Vector3.up, GameMap.DFtoUnityCoord(0, 0, GameMap.Instance.PosZ));
+            float distance;
+            if (currentPlane.Raycast(mouseRay, out distance))
+            {
+                WorldPos.point = mouseRay.GetPoint(distance);
+            }
+            else
+            {
+                WorldPos.point = Vector3.zero;
+            }
+        }
+        return WorldPos.point;
+    }
+
+    //// If we're attached to a camera, highlight the cube we're pointing at
+    //// (For now)
+    //void OnPostRender()
+    //{
+    //    if (!DFConnection.Connected || GameMap.Instance == null || !GameMap.Instance.enabled) return;
+    //    Ray mouseRay = GetComponent<Camera>().ScreenPointToRay(ArmokInput.PointerPosition);
+
+    //    DFCoord currentTarget;
+    //    Vector3 currentTargetCoords;
+    //    if (MapDataStore.FindCurrentTarget(mouseRay, out currentTarget, out currentTargetCoords))
+    //    {
+    //        var testCoords = GameMap.UnityToFloatingDFCoord(currentTargetCoords);
+    //        testCoords += mouseRay.direction * 0.0001f;
+    //        DFCoord testDF = new DFCoord(Mathf.FloorToInt(testCoords.x), Mathf.FloorToInt(testCoords.y), Mathf.FloorToInt(testCoords.z));
+    //        DebugHighlightTile(testDF, Color.white);
+    //        dfCoord = new Vector3(currentTarget.x, currentTarget.y, currentTarget.z);
+    //    }
+    //}
+
+    void DebugHighlightTile(DFCoord tile, Color color)
+    {
+        DebugHighlightRegion(tile, tile, color);
+    }
+
+    void DebugHighlightRegion(DFCoord a, DFCoord b, Color color)
+    {
+        highlightLineMaterial.SetPass(0);
+
+
+        Vector3 aVec = GameMap.DFtoUnityBottomCorner(a);
+        Vector3 bVec = GameMap.DFtoUnityBottomCorner(b);
+
+        Vector3 lowC = new Vector3(
+            Mathf.Min(aVec.x, bVec.x),
+            Mathf.Min(aVec.y, bVec.y),
+            Mathf.Min(aVec.z, bVec.z)
+            );
+        Vector3 upC = new Vector3(
+            Mathf.Max(aVec.x, bVec.x) + GameMap.tileWidth,
+            Mathf.Max(aVec.y, bVec.y) + GameMap.tileHeight,
+            Mathf.Max(aVec.z, bVec.z) + GameMap.tileWidth
+            );
+
+        // Bottom square
+        GL.Begin(GL.LINES);
+        GL.Color(color);
+        GL.Vertex3(lowC.x, lowC.y, lowC.z);
+        GL.Vertex3(lowC.x, lowC.y, upC.z);
+        GL.Vertex3(lowC.x, lowC.y, upC.z);
+        GL.Vertex3(upC.x, lowC.y, upC.z);
+        GL.Vertex3(upC.x, lowC.y, upC.z);
+        GL.Vertex3(upC.x, lowC.y, lowC.z);
+        GL.Vertex3(upC.x, lowC.y, lowC.z);
+        GL.Vertex3(lowC.x, lowC.y, lowC.z);
+
+        // Vertical lines
+        GL.Vertex3(lowC.x, lowC.y, lowC.z);
+        GL.Vertex3(lowC.x, upC.y, lowC.z);
+        GL.Vertex3(lowC.x, lowC.y, upC.z);
+        GL.Vertex3(lowC.x, upC.y, upC.z);
+        GL.Vertex3(upC.x, lowC.y, upC.z);
+        GL.Vertex3(upC.x, upC.y, upC.z);
+        GL.Vertex3(upC.x, lowC.y, lowC.z);
+        GL.Vertex3(upC.x, upC.y, lowC.z);
+
+        // Upper square
+        GL.Vertex3(lowC.x, upC.y, lowC.z);
+        GL.Vertex3(lowC.x, upC.y, upC.z);
+        GL.Vertex3(lowC.x, upC.y, upC.z);
+        GL.Vertex3(upC.x, upC.y, upC.z);
+        GL.Vertex3(upC.x, upC.y, upC.z);
+        GL.Vertex3(upC.x, upC.y, lowC.z);
+        GL.Vertex3(upC.x, upC.y, lowC.z);
+        GL.Vertex3(lowC.x, upC.y, lowC.z);
+        GL.End();
+    }
+}

@@ -1,0 +1,72 @@
+using UnityEngine;
+using System.Collections;
+using UnityEngine.EventSystems;
+
+public class CameraRotateVertical : MonoBehaviour
+{
+
+    private float mouseY;
+
+    public bool verticalRotationEnabled = true;
+
+    public float verticalRotationMin = 0.0f;
+    public float verticalRotationMax = 80.0f;
+
+    public float firstPersonVerticalRotationMin = 0.0f;
+    public float firstPersonVerticalRotationMax = 80.0f;
+
+    float RotationMin
+    {
+        get
+        {
+            if (gameMap != null && gameMap.firstPerson)
+                return firstPersonVerticalRotationMin;
+            else return verticalRotationMin;
+        }
+    }
+    float RotationMax
+    {
+        get
+        {
+            if (gameMap != null && gameMap.firstPerson)
+                return firstPersonVerticalRotationMax;
+            else return verticalRotationMax;
+        }
+    }
+
+    public float mouseSpeed = 10.0f;
+
+    public float rotationX = 45.0f;
+
+    GameMap gameMap;
+
+    void Awake()
+    {
+        gameMap = FindObjectOfType<GameMap>();
+    }
+
+    void Update()
+    {
+        HandleMouseRotation();
+
+        mouseY = ArmokInput.PointerPosition.y;
+    }
+
+    public void HandleMouseRotation()
+    {
+        if (ArmokInput.Action("Orbit").IsPressed() && EventSystem.current.currentSelectedGameObject == null)
+        {
+            //horizontal rotation
+            if (verticalRotationEnabled && ArmokInput.PointerPosition.y != mouseY)
+            {
+                float cameraRotationX = (mouseY - ArmokInput.PointerPosition.y) * mouseSpeed * Time.unscaledDeltaTime;
+                rotationX = rotationX + cameraRotationX;
+                if (rotationX < RotationMin)
+                    rotationX = RotationMin;
+                if (rotationX > RotationMax)
+                    rotationX = RotationMax;
+                this.transform.localEulerAngles = new Vector3(rotationX, 0, 0);
+            }
+        }
+    }
+}
