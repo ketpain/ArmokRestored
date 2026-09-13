@@ -14,6 +14,7 @@ namespace Armok.Tests
         private Keyboard originalKeyboard;
         private Mouse originalMouse;
         private InputSettings originalSettings;
+        private InputSettings settingsBackup;
         private InputSettings testSettings;
         private bool originalRunInBackground;
 
@@ -25,6 +26,9 @@ namespace Armok.Tests
             originalKeyboard = Keyboard.current;
             originalMouse = Mouse.current;
             originalSettings = InputSystem.settings;
+            // Assigning settings can destroy Unity's temporary default instance.
+            settingsBackup = Object.Instantiate(originalSettings);
+            settingsBackup.hideFlags = HideFlags.HideAndDontSave;
             originalRunInBackground = Application.runInBackground;
             testSettings = Object.Instantiate(originalSettings);
             testSettings.hideFlags = HideFlags.HideAndDontSave;
@@ -50,11 +54,14 @@ namespace Armok.Tests
             if (mouse != null && mouse.added) InputSystem.RemoveDevice(mouse);
             if (originalKeyboard != null && originalKeyboard.added) originalKeyboard.MakeCurrent();
             if (originalMouse != null && originalMouse.added) originalMouse.MakeCurrent();
-            if (testSettings != null)
+            if (settingsBackup != null)
             {
-                InputSystem.settings = originalSettings;
-                Object.DestroyImmediate(testSettings);
+                var restoredSettings = originalSettings != null ? originalSettings : settingsBackup;
+                InputSystem.settings = restoredSettings;
+                if (testSettings != null) Object.DestroyImmediate(testSettings);
+                if (settingsBackup != restoredSettings) Object.DestroyImmediate(settingsBackup);
                 testSettings = null;
+                settingsBackup = null;
                 Application.runInBackground = originalRunInBackground;
             }
         }
