@@ -1,6 +1,6 @@
 # ArmokRestored maintenance plan
 
-Updated: 2026-09-13
+Updated: 2026-09-14
 
 Status: Phases 0-2 complete and verified. Phase 3 is underway, starting with cursor inspection and retiring the legacy command UI. Phases 4-6 remain pending.
 
@@ -235,6 +235,7 @@ Do not combine all slices into one change. Preserve a verified checkpoint before
 
 ## Progress record
 
+- 2026-09-14: Resaved `LavaMaterial`, `Cloudy Sky`, `ParticleFlames`, and `ParticleFirecloud` through Unity 6000.6's asset pipeline, upgrading Material serialization versions 3/5 to 8. All four reimported successfully with supported shaders and identical loaded property snapshots. All 74 original saved properties, shader references, and `.meta` files were preserved. Evidence: `Logs/MaterialUpgrade-20260914/`. This was a targeted material-format repair; no rendering pipeline, runtime code, or package changes were required.
 - 2026-09-13: Reviewed the core architecture and documented this phased plan. No runtime, asset, or project-setting changes were made as part of the planning task.
 - Baseline revision: `a78ae7f` (baseline `a4568e1` plus the fresh-checkout OBJ-source correction). Isolated import/compile and material generation passed with Unity exit code 0.
 - First implementation milestone: Pending Phases 0–2.
