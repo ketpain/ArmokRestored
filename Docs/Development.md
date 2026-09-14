@@ -36,6 +36,12 @@ Checks needing a graphics device or a live DF process must be reported separatel
 
 For a separate checkout, run Unity with `-batchmode -quit -projectPath <checkout> -executeMethod Armok.Editor.ProjectValidation.PrepareContent -logFile <log-path>` to compile and rebuild the material resources without DF. Supply the full path to the pinned Unity editor executable. Use a graphics-capable environment, and check both the process exit code and `Logs/project-validation.json` in that checkout. Do not open the same checkout in two editors simultaneously.
 
+## Imported collision meshes
+
+For imported models referenced by `MeshCollider` components, enable Pre-baked Collision in the model's Mesh import settings for the collision type those components use: Convex or Triangle. This saves the explicit build-time baking choice in the model's `.meta` file. Keep collider shapes, Generate Colliders, and Read/Write settings unchanged when correcting a missing bake flag. Procedurally generated map-block meshes still require runtime cooking.
+
+The corresponding editor API is [`ModelImporter.SetPreBakeCollisionMesh(isConvex, preBake)`](https://docs.unity3d.com/6000.6/Documentation/ScriptReference/ModelImporter.SetPreBakeCollisionMesh.html). Unity's build warning and Project Auditor can identify imported meshes missing the appropriate flag.
+
 ## Optional engraving artwork
 
 `ImageManager` loads creature illustrations for engravings and decorative images from `Assets/Resources/Images/Creatures`. These are separate from the map's creature sprites. Exact creature tokens take precedence; numbered generated creatures use their generic artwork when available (for example, `DEMON_22` uses `DEMON.png`). The lookup also accepts the older bird and marmot filenames and the bundled peregrine falcon spelling.

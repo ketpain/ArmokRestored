@@ -184,6 +184,7 @@ ModelImporter:
     globalScale: 0.01
     meshCompression: 0
     addColliders: 0
+    preBakeConvexCollisionMesh: 1
     importVisibility: 0
     importBlendShapes: 1
     importCameras: 0

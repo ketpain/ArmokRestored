@@ -34,6 +34,7 @@ ModelImporter:
     globalScale: .00999999978
     meshCompression: 0
     addColliders: 1
+    preBakeConvexCollisionMesh: 1
     importBlendShapes: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
