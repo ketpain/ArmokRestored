@@ -30,6 +30,7 @@ The equivalent Unity test arguments are `-batchmode -runTests -testPlatform Edit
 | `CreatureArtTests` | Exact bundled artwork, numbered generic creatures, legacy filename aliases, readable source pixels, and missing optional illustrations | Project Resources assets; reflection into legacy `ImageManager`; no DF |
 | `MaterialCollectionTests` | Creating a replacement collection preserves the loaded resource and its file | Run Prepare Content first; no DF |
 | `MapCoordinatesTests` | Tile-anchor round trips, negative coordinates, horizontal midpoint rounding, vertical floor boundaries, directions, origins and block corners | No DF; restores the shared vertical offset |
+| `MapExportTests` | Material CSV/JSON data, building rows, screenshot naming, PNG pixels and render-target/texture cleanup on successful and failed writes | Temporary test-owned output; minimap capture cases require graphics |
 | `ModernInputTests` | Project movement/elevation bindings, button edges, pointer/look/zoom sensitivity, and removal of held devices | Play Mode; project Input Actions asset; no DF |
 | `LiveDFSmokeTests` | Three completed loads with reload disabled, stable callback counts and sprite hashes, supported visible shaders, connection teardown, and captured worker completion | Running DF/DFHack with a suitable fortress; graphics device |
 

@@ -378,7 +378,11 @@ must be accounted for explicitly.
   readonly `CPUMesh` fields. The old BinaryFormatter `.avmesh` output is retired;
   format compatibility is described in `Docs/Development.md`.
   `Assets/Scripts/Collada-IO` and `Assets/OBJ-IO` contain separate Collada and OBJ
-  facilities; map exports have not yet been consolidated.
+  facilities. `Assets/Armok/Runtime/Export` contains `MapScreenshot` (F9 view /
+  modified F9 minimap capture) and `MapDataExport` (material/item/creature JSON
+  and CSV, building/tile/plant CSV). GameMap retains the shortcut/settings
+  triggers and supplies definitions and paths. The unused commented mesh-export
+  prototype was removed; the separate Collada and OBJ tools remain separate.
 * `Assets/StreamingAssets` contains runtime content files. `Assets/Resources`,
   `Materials`, `Shaders`, `Meshes`, `Textures`, and `Prefabs` contain Unity assets;
   the latter names are folders directly under `Assets`. Root `Content` contains

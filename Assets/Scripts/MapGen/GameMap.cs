@@ -154,10 +154,10 @@ public class GameMap : MonoBehaviour
         SessionRuntime.Own(mesher);
         // Initialize materials, if available
         if (GameSettings.Instance.debug.saveMaterialList)
-            SaveMaterialList(MaterialRaws.Instance, Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "MaterialList.csv"));
+            MapDataExport.SaveMaterialList(MaterialRaws.Instance, Path.Combine(exportDirectory, "MaterialList.csv"));
         // Initialize items, if available
             if (GameSettings.Instance.debug.saveItemList)
-                SaveMaterialList(ItemRaws.Instance, Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "ItemList.csv"));
+                MapDataExport.SaveMaterialList(ItemRaws.Instance, Path.Combine(exportDirectory, "ItemList.csv"));
         if (DFConnection.Instance.NetBuildingList != null)
         {
             if (buildings == null)
@@ -168,7 +168,7 @@ public class GameMap : MonoBehaviour
                 buildings[building.building_type] = building;
             }
             if (GameSettings.Instance.debug.saveBuildingList)
-                SaveBuildingList();
+                MapDataExport.SaveBuildingList(DFConnection.Instance.NetBuildingList, Path.Combine(exportDirectory, "BuildingList.csv"));
         }
         if (CreatureRaws.Instance != null)
         {
@@ -189,14 +189,14 @@ public class GameMap : MonoBehaviour
             }
             GeneratedCreatureTranslator.AddFakeCreaturesToList(creatures);
             if (GameSettings.Instance.debug.saveCreatureList)
-                SaveMaterialList(creatures, Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "CreatureList.csv"));
+                MapDataExport.SaveMaterialList(creatures, Path.Combine(exportDirectory, "CreatureList.csv"));
         }
 
         if (GameSettings.Instance.debug.saveTiletypeList)
-            SaveTileTypeList();
+            MapDataExport.SaveTileTypeList(DFConnection.Instance.NetTiletypeList, Path.Combine(exportDirectory, "TiletypeList.csv"));
 
         if (GameSettings.Instance.debug.savePlantList)
-            SavePlantList();
+            MapDataExport.SavePlantList(TokenLists.PlantTokenList.GrowthIDs, Path.Combine(exportDirectory, "PlantList.csv"));
 
         UpdateView();
 
@@ -245,37 +245,8 @@ public class GameMap : MonoBehaviour
                 overheadShadows = !overheadShadows;
             }
 
-            // take screenshot on up->down transition of F9 key
             if (ArmokInput.Action("TakeScreenshot").WasPressedThisFrame())
-            {
-                string path = Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "Screenshots");
-                if (!Directory.Exists(path))
-                    Directory.CreateDirectory(path);
-                string screenshotFilename;
-                do
-                {
-                    screenshotCount++;
-                    screenshotFilename = Path.Combine(path, "screenshot" + screenshotCount + ".png");
-
-                } while (File.Exists(screenshotFilename));
-
-                Debug.Log ("Saving screenshot to: " + screenshotFilename);
-
-                if (ArmokInput.Action("Mod").IsPressed())
-                {
-                    RenderTexture.active = Minimap.Instance.texture;
-                    Texture2D virtualPhoto =
-                        new Texture2D(Minimap.Instance.texture.width, Minimap.Instance.texture.height, TextureFormat.RGB24, false);
-                    // false, meaning no need for mipmaps
-                    virtualPhoto.ReadPixels(new Rect(0, 0, Minimap.Instance.texture.width, Minimap.Instance.texture.height), 0, 0);
-
-                    RenderTexture.active = null; //can help avoid errors 
-
-                    File.WriteAllBytes(screenshotFilename, virtualPhoto.EncodeToPNG());
-                }
-                else
-                    UnityEngine.ScreenCapture.CaptureScreenshot(screenshotFilename);
-            }
+                screenshots.Capture(ArmokInput.Action("Mod").IsPressed());
             if (ArmokInput.Action("Refresh").WasPressedThisFrame())
             {
                 Refresh();
@@ -450,183 +421,7 @@ public class GameMap : MonoBehaviour
 
     public Mesh testMesh;
 
-    private void SaveMeshes()
-    {
-        //COLLADA exportScene = new COLLADA();
 
-        //List<geometry> geometryList = new List<geometry>();
-
-        ////if(testMesh!= null)
-        ////{
-        ////    geometry geo = COLLADA.MeshToGeometry(testMesh);
-        ////    if (geo != null)
-        ////        geometryList.Add(geo);
-        ////}
-
-        //Debug.Log("Starting mesh export");
-        //foreach (Mesh mesh in blocks)
-        //{
-        //    if (mesh != null)
-        //    {
-        //        geometry geo = (COLLADA.MeshToGeometry(mesh));
-        //        if (geo != null)
-        //            geometryList.Add(geo);
-        //    }
-        //}
-        //Debug.Log("Added opaque blocks");
-        //foreach (Mesh mesh in stencilBlocks)
-        //{
-        //    if (mesh != null)
-        //    {
-        //        geometry geo = (COLLADA.MeshToGeometry(mesh));
-        //        if (geo != null)
-        //            geometryList.Add(geo);
-        //    }
-        //}
-        //Debug.Log("Added stencil blocks");
-        //foreach (Mesh mesh in transparentBlocks)
-        //{
-        //    if (mesh != null)
-        //    {
-        //        geometry geo = (COLLADA.MeshToGeometry(mesh));
-        //        if (geo != null)
-        //            geometryList.Add(geo);
-        //    }
-        //}
-        //Debug.Log("Added transparent blocks");
-        //foreach (Mesh mesh in liquidBlocks)
-        //{
-        //    if (mesh != null)
-        //    {
-        //        geometry geo = (COLLADA.MeshToGeometry(mesh));
-        //        if (geo != null)
-        //            geometryList.Add(geo);
-        //    }
-        //}
-        //Debug.Log("Added liquid blocks");
-
-        //library_geometries geometryLib = new library_geometries();
-        //geometryLib.geometry = geometryList.ToArray();
-        //Debug.Log("Added geometry to library");
-
-        //library_visual_scenes visualSceneLib = new library_visual_scenes();
-        //visual_scene visualScene = new visual_scene();
-
-        //visualSceneLib.visual_scene = new visual_scene[1];
-        //visualSceneLib.visual_scene[0] = visualScene;
-
-        //visualScene.id = "Map";
-        //visualScene.name = "Map";
-        //visualScene.node = new node[geometryList.Count];
-        //for (int i = 0; i < geometryList.Count; i++)
-        //{
-        //    node thisNode = new node();
-        //    visualScene.node[i] = thisNode;
-        //    geometry thisGeometry = geometryList[i];
-        //    thisNode.id = thisGeometry.id.Remove(thisGeometry.id.Length - 4);
-        //    thisNode.name = thisGeometry.name.Remove(thisGeometry.name.Length - 6);
-        //    thisNode.sid = thisNode.id;
-
-        //    thisNode.Items = new object[1];
-        //    thisNode.Items[0] = COLLADA.ConvertMatrix(Matrix4x4.identity);
-        //    thisNode.ItemsElementName = new ItemsChoiceType2[1];
-        //    thisNode.ItemsElementName[0] = ItemsChoiceType2.matrix;
-
-        //    thisNode.instance_geometry = new instance_geometry[1];
-        //    thisNode.instance_geometry[0] = new instance_geometry();
-        //    thisNode.instance_geometry[0].url = "#" + thisGeometry.id;
-        //}
-        //Debug.Log("Added geometry to scene");
-
-        //COLLADAScene sceneInstance = new COLLADAScene();
-        //sceneInstance.instance_visual_scene = new InstanceWithExtra();
-        //sceneInstance.instance_visual_scene.url = "#" + visualScene.id;
-
-        //exportScene.scene = sceneInstance;
-
-        //exportScene.Items = new object[2];
-        //exportScene.Items[0] = geometryLib;
-        //exportScene.Items[1] = visualSceneLib;
-
-        //asset assetHeader = new asset();
-        //assetHeader.unit = new assetUnit();
-        //assetHeader.unit.meter = 1;
-        //assetHeader.unit.name = "meter";
-        //assetHeader.up_axis = UpAxisType.Y_UP;
-
-        //exportScene.asset = assetHeader;
-        //Debug.Log("Setup Scene");
-
-        //if (File.Exists("Map.dae"))
-        //    File.Delete("Map.dae");
-        //exportScene.Save("Map.dae");
-        //Debug.Log("Saved Scene");
-
-        //Texture2D mainTex = (Texture2D)BasicTerrainMaterial.GetTexture("_MainTex");
-
-        //Color[] mainTexPixels = mainTex.GetPixels();
-        //Color[] diffusePixels = new Color[mainTexPixels.Length];
-        //Color[] roughnessPixels = new Color[mainTexPixels.Length];
-
-        //for (int i = 0; i < mainTexPixels.Length; i++)
-        //{
-        //    diffusePixels[i] = new Color(mainTexPixels[i].r, mainTexPixels[i].g, mainTexPixels[i].b, 1.0f);
-        //    roughnessPixels[i] = new Color(mainTexPixels[i].a, mainTexPixels[i].a, mainTexPixels[i].a, 1.0f);
-        //}
-
-        //Texture2D diffuseTex = new Texture2D(mainTex.width, mainTex.height);
-        //Texture2D roughnessTex = new Texture2D(mainTex.width, mainTex.height);
-
-        //diffuseTex.SetPixels(diffusePixels);
-        //roughnessTex.SetPixels(roughnessPixels);
-
-        //diffuseTex.Apply();
-        //roughnessTex.Apply();
-
-        //byte[] diffuseBytes = diffuseTex.EncodeToPNG();
-        //byte[] roughnessBytes = roughnessTex.EncodeToPNG();
-
-        //File.WriteAllBytes("pattern.png", diffuseBytes);
-        //File.WriteAllBytes("specular.png", roughnessBytes);
-        //Debug.Log("Saved Maintex");
-
-        //Texture2D bumpMap = (Texture2D)BasicTerrainMaterial.GetTexture("_BumpMap");
-
-        //Color[] bumpMapPixels = bumpMap.GetPixels();
-        //Color[] normalMapPixels = new Color[bumpMapPixels.Length];
-        //Color[] ambientMapPixels = new Color[bumpMapPixels.Length];
-        //Color[] alphaMapPixels = new Color[bumpMapPixels.Length];
-
-        //for (int i = 0; i < bumpMapPixels.Length; i++)
-        //{
-        //    normalMapPixels[i] = new Color(bumpMapPixels[i].a, bumpMapPixels[i].g, Mathf.Sqrt(1 - ((bumpMapPixels[i].a * 2 - 1) * (bumpMapPixels[i].a * 2 - 1)) + ((bumpMapPixels[i].g * 2 - 1) * (bumpMapPixels[i].g * 2 - 1))));
-        //    ambientMapPixels[i] = new Color(bumpMapPixels[i].r, bumpMapPixels[i].r, bumpMapPixels[i].r, 1.0f);
-        //    alphaMapPixels[i] = new Color(bumpMapPixels[i].b, bumpMapPixels[i].b, bumpMapPixels[i].b, 1.0f);
-        //}
-
-        //Texture2D normalTex = new Texture2D(bumpMap.width, bumpMap.height);
-        //Texture2D ambientTex = new Texture2D(bumpMap.width, bumpMap.height);
-        //Texture2D alphaTex = new Texture2D(bumpMap.width, bumpMap.height);
-
-        //normalTex.SetPixels(normalMapPixels);
-        //ambientTex.SetPixels(ambientMapPixels);
-        //alphaTex.SetPixels(alphaMapPixels);
-
-        //normalTex.Apply();
-        //ambientTex.Apply();
-        //alphaTex.Apply();
-
-        //byte[] normalBytes = normalTex.EncodeToPNG();
-        //byte[] ambientBytes = ambientTex.EncodeToPNG();
-        //byte[] alphaBytes = alphaTex.EncodeToPNG();
-
-        //File.WriteAllBytes("normal.png", normalBytes);
-        //File.WriteAllBytes("occlusion.png", ambientBytes);
-        //File.WriteAllBytes("alpha.png", alphaBytes);
-        //Debug.Log("Saved DetailTex");
-
-        //Debug.Log("Saved map!");
-    }
 
     void OnDestroy()
     {
@@ -882,151 +677,7 @@ public class GameMap : MonoBehaviour
     }
 
 
-#region Debug Data Saving
 
-    void SaveTileTypeList()
-    {
-        if (DFConnection.Instance.NetTiletypeList == null)
-            return;
-        string fileName = Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "TiletypeList.csv");
-        try
-        {
-            File.Delete(fileName);
-        }
-        catch (IOException)
-        {
-            return;
-        }
-        using (StreamWriter writer = new StreamWriter(fileName))
-        {
-            foreach (Tiletype item in DFConnection.Instance.NetTiletypeList.tiletype_list)
-            {
-                writer.WriteLine(
-                    item.id + "," + 
-                    "\"" + item.name + "\"," +
-                    item.shape + ":" +
-                    item.special + ":" +
-                    item.material + ":" +
-                    item.variant + ":" +
-                    item.direction
-                    );
-            }
-        }
-    }
-    void SaveBuildingList()
-    {
-        if (DFConnection.Instance.NetBuildingList == null)
-            return;
-
-        string fileName = Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "BuildingList.csv");
-
-        try
-        {
-            File.Delete(fileName);
-        }
-        catch (IOException)
-        {
-            return;
-        }
-        using (StreamWriter writer = new StreamWriter(fileName))
-        {
-            foreach (var item in DFConnection.Instance.NetBuildingList.building_list)
-            {
-                writer.WriteLine("\"" +
-                    item.name + "\",\"" +
-                    item.id + "\"," +
-                    item.building_type.building_type + ":" +
-                    item.building_type.building_subtype + ":" +
-                    item.building_type.building_custom
-                    );
-            }
-        }
-    }
-    class ListContainer
-    {
-        public List<MaterialDefinition> list = new List<MaterialDefinition>();
-    }
-
-    void SaveMaterialList(IEnumerable<KeyValuePair<MatPairStruct, MaterialDefinition>> list, string filename)
-    {
-        string jsonFile = Path.ChangeExtension(filename, "json");
-        try
-        {
-            File.Delete(filename);
-            File.Delete(jsonFile);
-        }
-        catch (IOException)
-        {
-            return;
-        }
-        ListContainer container = new ListContainer();
-        using (StreamWriter writer = new StreamWriter(filename))
-        {
-            foreach (var item in list)
-            {
-                writer.WriteLine("\"" + 
-                    item.Value.name + "\",\"" +
-                    item.Value.id + "\"," +
-                    item.Value.mat_pair.mat_type + "," +
-                    item.Value.mat_pair.mat_index
-                    );
-                container.list.Add(item.Value);
-            }
-        }
-        File.WriteAllText(jsonFile, Newtonsoft.Json.JsonConvert.SerializeObject(container, Newtonsoft.Json.Formatting.Indented));
-    }
-
-    void SavePlantList()
-    {
-        if (DFConnection.Instance.NetPlantRawList == null)
-            return;
-        string fileName = Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "PlantList.csv");
-        try
-        {
-            File.Delete(fileName);
-        }
-        catch (IOException)
-        {
-            return;
-        }
-        using (StreamWriter writer = new StreamWriter(fileName))
-        {
-            foreach (var plant in TokenLists.PlantTokenList.GrowthIDs)
-            {
-                foreach (var growth in plant.Value)
-                {
-                    foreach (var print in growth.Value)
-                    {
-                        writer.Write("\"");
-                        writer.Write(plant.Key);
-                        writer.Write("\",\"");
-                        writer.Write(growth.Key);
-                        writer.Write("\",\"");
-                        writer.Write(print.Key);
-                        writer.Write("\",\"");
-                        writer.Write(print.Value);
-                        writer.Write("\"");
-                        //var index = print.Value;
-                        //if (index.building_type >= 0)
-                        //{
-                        //    PlantRaw plantRaw = DFConnection.Instance.NetPlantRawList.plant_raws[index.building_type];
-                        //    if (index.building_type >= 0 && index.building_subtype >= 0 && index.building_custom >= 0)
-                        //    {
-                        //        var printRaw = plantRaw.growths[index.building_subtype].prints[index.building_custom];
-                        //        writer.Write(CharacterConverter.Convert((byte)printRaw.tile));
-                        //    }
-                        //    else
-                        //    {
-                        //        writer.Write(CharacterConverter.Convert((byte)plantRaw.tile));
-                        //    }
-                        //}
-                        writer.WriteLine();
-                    }
-                }
-            }
-        }
-    }
-#endregion
 
     void DirtySeasonalBlocks()
     {
@@ -1190,7 +841,8 @@ public class GameMap : MonoBehaviour
             MapDataStore.Main.Reset();
     }
 
-    private int screenshotCount;
+    private readonly MapScreenshot screenshots = new MapScreenshot();
+    private static string exportDirectory => Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName);
 
 
     public void UpdateCenter(Vector3 pos)
