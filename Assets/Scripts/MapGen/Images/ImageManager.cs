@@ -497,6 +497,39 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
     Dictionary<int, int> CreatureSpriteMap = new Dictionary<int, int>();
     Dictionary<int, int> PlantSpriteMap = new Dictionary<int, int>();
 
+    private static Texture2D LoadCreatureArt(string token)
+    {
+        const string path = "Images/Creatures/";
+        var sprite = Resources.Load<Texture2D>(path + token);
+        if (sprite != null)
+            return sprite;
+
+        // Generated creatures share artwork such as DEMON and FORGOTTEN_BEAST.
+        string genericToken = token.TrimEnd('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '_');
+        if (genericToken != token)
+        {
+            sprite = Resources.Load<Texture2D>(path + genericToken);
+            if (sprite != null)
+                return sprite;
+        }
+
+        if (genericToken.StartsWith("BIRD_", StringComparison.Ordinal))
+            return Resources.Load<Texture2D>(path + genericToken.Substring(5));
+
+        // Preserve the filenames/GUIDs in the bundled artwork while accepting DF tokens.
+        switch (genericToken)
+        {
+            case "GIANT PEREGRINE FALCON":
+                return Resources.Load<Texture2D>(path + "GIANT PAREGRINE FALCON");
+            case "MARMOT_HOARY_MAN":
+                return Resources.Load<Texture2D>(path + "MARMOT_MAN");
+            case "GIANT_MARMOT_HOARY":
+                return Resources.Load<Texture2D>(path + "GIANT_MARMOT");
+            default:
+                return null;
+        }
+    }
+
     IEnumerator LoadImages()
     {
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
@@ -504,6 +537,8 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
             mainProgressBar.SetProgress("Loading images");
 
         List<Texture2D> textureList = new List<Texture2D>();
+        int missingCreatureArt = 0;
+        var missingArtExamples = new List<string>();
         int loadedCount = 0;
         float loadTotal = 0;
         if (DFConnection.Instance != null && CreatureRaws.Instance != null)
@@ -534,16 +569,12 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
                 if (subProgressBar != null)
                     subProgressBar.SetProgress(loadedCount / loadTotal, token);
                 loadedCount++;
-                Texture2D sprite = Resources.Load<Texture2D>("Images/Creatures/" + token);
+                Texture2D sprite = LoadCreatureArt(token);
                 if (sprite == null)
                 {
-                    //Try again without stupid numbers
-                    token.TrimEnd('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '_');
-                    sprite = Resources.Load<Texture2D>("Images/Creatures/" + token);
-                }
-                if (sprite == null)
-                {
-                    Debug.LogWarning("Could not find art image for " + token);
+                    missingCreatureArt++;
+                    if (missingArtExamples.Count < 5)
+                        missingArtExamples.Add(token);
                     continue;
                 }
                 if (sprite.width != 32 || sprite.height != 32)
@@ -558,6 +589,9 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
                     stopWatch.Start();
                 }
             }
+        if (missingCreatureArt > 0)
+            Debug.LogFormat("Engraving art: {0} creatures have no optional illustration and will use DF tile glyphs. Examples: {1}.",
+                missingCreatureArt, string.Join(", ", missingArtExamples));
         //IMAGE_PLANT:
         //IMAGE_TREE:
         //IMAGE_SHAPE:

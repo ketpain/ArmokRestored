@@ -4,7 +4,7 @@
 
 In the editor, use these menu commands outside Play Mode:
 
-- `Mytools > Tests > Run Content Tests`: offline Edit Mode texture and cache checks.
+- `Mytools > Tests > Run Content Tests`: offline Edit Mode texture, cache, and creature-art lookup checks.
 - `Mytools > Tests > Run Input Tests`: Play Mode checks using synthetic input devices and a clone of the project's action map.
 - `Mytools > Tests > Run Live DF Smoke Test`: three Map Mode Play sessions against DFHack on `127.0.0.1:5000`. Save open scenes first and keep the same fortress loaded throughout the run.
 
@@ -27,6 +27,7 @@ The equivalent Unity test arguments are `-batchmode -runTests -testPlatform Edit
 | --- | --- | --- |
 | `TextureScaleTests` | Known point/bilinear samples, same-size legacy sampling, channel interpolation, large parallel work, concurrent calls, degenerate dimensions, invalid input, source immutability | No DF; CPU pixel tests |
 | `SpriteTextureCacheTests` | Exact color/normal mip round trips, source/layout invalidation, damaged/truncated files, replacement, unavailable storage, temporary-file cleanup | Graphics device supporting texture arrays; no DF |
+| `CreatureArtTests` | Exact bundled artwork, numbered generic creatures, legacy filename aliases, readable source pixels, and missing optional illustrations | Project Resources assets; reflection into legacy `ImageManager`; no DF |
 | `ModernInputTests` | Project movement/elevation bindings, button edges, pointer/look/zoom sensitivity, and removal of held devices | Play Mode; project Input Actions asset; no DF |
 | `LiveDFSmokeTests` | Three completed loads with reload disabled, stable callback counts and sprite hashes, supported visible shaders, connection teardown, and captured worker completion | Running DF/DFHack with a suitable fortress; graphics device |
 

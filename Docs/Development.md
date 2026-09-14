@@ -36,6 +36,12 @@ Checks needing a graphics device or a live DF process must be reported separatel
 
 For a separate checkout, run Unity with `-batchmode -quit -projectPath <checkout> -executeMethod Armok.Editor.ProjectValidation.PrepareContent -logFile <log-path>` to compile and rebuild the material resources without DF. Supply the full path to the pinned Unity editor executable. Use a graphics-capable environment, and check both the process exit code and `Logs/project-validation.json` in that checkout. Do not open the same checkout in two editors simultaneously.
 
+## Optional engraving artwork
+
+`ImageManager` loads creature illustrations for engravings and decorative images from `Assets/Resources/Images/Creatures`. These are separate from the map's creature sprites. Exact creature tokens take precedence; numbered generated creatures use their generic artwork when available (for example, `DEMON_22` uses `DEMON.png`). The lookup also accepts the older bird and marmot filenames and the bundled peregrine falcon spelling.
+
+Creatures without an illustration retain the existing DF tile-glyph fallback. This is expected for some ordinary creatures, modded species, and world-generated creatures. Loading reports one informational summary with a count and a few examples instead of a warning for every missing illustration. To add dedicated art, supply a texture named after the creature token in that resource folder and enable Read/Write in its import settings; atlas creation reads the source pixels.
+
 ## MeshSerializer editor exports
 
 The `MeshSerializer` inspector exports `.json` with `DataContractJsonSerializer` or `.xml` with `DataContractSerializer`. Both preserve the `[Serializable]` mesh data, including `CPUMesh`'s readonly arrays, vertex count, name, layer, and rotation. JSON stores enum values as numbers; XML uses the data contract's element names and namespaces. Export streams are closed before the operation returns.
