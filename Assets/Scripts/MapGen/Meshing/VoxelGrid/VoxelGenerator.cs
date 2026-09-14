@@ -81,8 +81,8 @@ public class VoxelGenerator
 
         TriangulateCellRows(map);
 
-        ConvertToMesh(wallPolygons.Polygons, GameMap.tileHeight, true);
-        ConvertToMesh(floorPolygons.Polygons, GameMap.floorHeight, true);
+        ConvertToMesh(wallPolygons.Polygons, MapCoordinates.TileHeight, true);
+        ConvertToMesh(floorPolygons.Polygons, MapCoordinates.FloorHeight, true);
         ConvertToMesh(wallPolygons.Polygons, 0, false);
         ConvertToMesh(floorPolygons.Polygons, 0, false);
 
@@ -112,11 +112,11 @@ public class VoxelGenerator
                     map[x + 1, y, z],
                     map[x, y + 1, z],
                     map[x + 1, y + 1, z],
-                    GameMap.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y - 1, z))) + new Vector3(GameMap.tileWidth / 2, 0, 0),
-                    GameMap.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x, y - 1, z))) + new Vector3(0, 0, -GameMap.tileWidth / 2),
-                    GameMap.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y, z))) + new Vector3(GameMap.tileWidth / 2, 0, 0),
-                    GameMap.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y - 1, z))) + new Vector3(0, 0, -GameMap.tileWidth / 2),
-                    GameMap.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y - 1, z))) + new Vector3(GameMap.tileWidth / 2, 0, -GameMap.tileWidth / 2),
+                    MapCoordinates.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y - 1, z))) + new Vector3(MapCoordinates.TileWidth / 2, 0, 0),
+                    MapCoordinates.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x, y - 1, z))) + new Vector3(0, 0, -MapCoordinates.TileWidth / 2),
+                    MapCoordinates.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y, z))) + new Vector3(MapCoordinates.TileWidth / 2, 0, 0),
+                    MapCoordinates.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y - 1, z))) + new Vector3(0, 0, -MapCoordinates.TileWidth / 2),
+                    MapCoordinates.DFtoUnityCoord(map.WorldToLocalSpace(new DFCoord(x - 1, y - 1, z))) + new Vector3(MapCoordinates.TileWidth / 2, 0, -MapCoordinates.TileWidth / 2),
                     edges);
             }
         }
@@ -1095,7 +1095,7 @@ public class VoxelGenerator
                         index = vertices.Count;
                         pointIndices[point] = index;
                         vertices.Add(new Vector3(point.Xf, height, point.Yf));
-                        uvs.Add(new Vector2(point.Xf / GameMap.tileWidth + 0.5f, point.Yf / GameMap.tileWidth + 0.5f));
+                        uvs.Add(new Vector2(point.Xf / MapCoordinates.TileWidth + 0.5f, point.Yf / MapCoordinates.TileWidth + 0.5f));
                     }
                     else
                         index = pointIndices[point];
@@ -1110,13 +1110,13 @@ public class VoxelGenerator
         switch (wallType)
         {
             case WallType.Floor:
-                AddWallMesh(GameMap.floorHeight, bottomless ? bottomlessDepth : 0, points);
+                AddWallMesh(MapCoordinates.FloorHeight, bottomless ? bottomlessDepth : 0, points);
                 break;
             case WallType.Wall:
-                AddWallMesh(GameMap.tileHeight, GameMap.floorHeight, points);
+                AddWallMesh(MapCoordinates.TileHeight, MapCoordinates.FloorHeight, points);
                 break;
             case WallType.Both:
-                AddWallMesh(GameMap.tileHeight, bottomless ? bottomlessDepth : 0, points);
+                AddWallMesh(MapCoordinates.TileHeight, bottomless ? bottomlessDepth : 0, points);
                 break;
             default:
                 break;
@@ -1125,8 +1125,8 @@ public class VoxelGenerator
 
     void AddWallMesh(float top, float bottom, params Vector3[] points)
     {
-        float uvTop = top / GameMap.tileHeight;
-        float uvBottom = bottom / GameMap.tileHeight;
+        float uvTop = top / MapCoordinates.TileHeight;
+        float uvBottom = bottom / MapCoordinates.TileHeight;
 
         float length = 0;
         for (int i = 0; i < points.Length - 1; i++)

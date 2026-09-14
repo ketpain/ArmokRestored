@@ -453,8 +453,8 @@ public class CreatureBody : MonoBehaviour
                 onGround = false;
             }
         }
-        if (unit.facing != null && GameMap.DFtoUnityDirection(unit.facing).sqrMagnitude > 0 && unit.rider_id < 0)
-            transform.rotation = Quaternion.LookRotation(GameMap.DFtoUnityDirection(unit.facing));
+        if (unit.facing != null && MapCoordinates.DFtoUnityDirection(unit.facing).sqrMagnitude > 0 && unit.rider_id < 0)
+            transform.rotation = Quaternion.LookRotation(MapCoordinates.DFtoUnityDirection(unit.facing));
         else if (unit.rider_id >= 0)
             transform.rotation = Quaternion.identity;
 

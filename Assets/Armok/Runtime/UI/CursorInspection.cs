@@ -131,7 +131,7 @@ public sealed class CursorInspection : MonoBehaviour
 
         marker.gameObject.SetActive(false);
         if (!selection.HasValue || !GameMap.IsInVisibleArea(selection.Value)) return;
-        var world = GameMap.DFtoUnityCoord(selection.Value) + Vector3.up * GameMap.floorHeight;
+        var world = MapCoordinates.DFtoUnityCoord(selection.Value) + Vector3.up * MapCoordinates.FloorHeight;
         var screen = viewCamera.WorldToScreenPoint(world);
         if (screen.z <= 0 || !viewCamera.pixelRect.Contains(screen)) return;
         Vector2 local;

@@ -46,8 +46,8 @@ public class WaveManager : MonoBehaviour
             var dist = ((DFCoord)wave.pos - wave.dest).Max;
             float size = (21 - dist) / 20.0f;
             positions[i] = Matrix4x4.TRS(
-                GameMap.DFtoUnityCoord(wave.pos),
-                Quaternion.LookRotation(GameMap.DFtoUnityCoord(wave.dest) - GameMap.DFtoUnityCoord(wave.pos)),
+                MapCoordinates.DFtoUnityCoord(wave.pos),
+                Quaternion.LookRotation(MapCoordinates.DFtoUnityCoord(wave.dest) - MapCoordinates.DFtoUnityCoord(wave.pos)),
                 new Vector3(scale.x, size * scale.y, scale.z));
         }
 

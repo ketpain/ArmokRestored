@@ -11,7 +11,7 @@ public class CenterOnceScript : MonoBehaviour
             return;
         if (GameMap.Instance.FollowPos.Max <= 0)
             return;
-        transform.position = GameMap.DFtoUnityCoord(GameMap.Instance.FollowPos) + new Vector3(0, GameMap.floorHeight,0);
+        transform.position = MapCoordinates.DFtoUnityCoord(GameMap.Instance.FollowPos) + new Vector3(0, MapCoordinates.FloorHeight,0);
         //enabled = false;
     }
 }

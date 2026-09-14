@@ -132,8 +132,8 @@ public class SplatManager : MonoBehaviour
         var terrainColors = terrainTintColor[blockZ];
 
         UnityEngine.Profiling.Profiler.BeginSample("Update Terrain Color Array", this);
-        for (int y = blockY * GameMap.blockSize; y < (blockY+1) * GameMap.blockSize; y++)
-            for (int x = blockX * GameMap.blockSize; x < (blockX + 1) * GameMap.blockSize; x++)
+        for (int y = blockY * MapCoordinates.BlockSize; y < (blockY+1) * MapCoordinates.BlockSize; y++)
+            for (int x = blockX * MapCoordinates.BlockSize; x < (blockX + 1) * MapCoordinates.BlockSize; x++)
             {
                 int index = x + (y * MapDataStore.MapSize.x);
                 var tile = MapDataStore.Main[x, y, blockZ];
@@ -221,7 +221,7 @@ public class SplatManager : MonoBehaviour
         if (terrainTintLayers[blockZ].width != MapDataStore.MapSize.x || terrainTintLayers[blockZ].height != MapDataStore.MapSize.y)
             terrainTintLayers[blockZ].Reinitialize(MapDataStore.MapSize.x, MapDataStore.MapSize.y);
 
-        terrainTintLayers[blockZ].SetPixels(blockX * GameMap.blockSize, blockY * GameMap.blockSize, GameMap.blockSize, GameMap.blockSize, GetColorBlock(blockX, blockY, terrainTintColor[blockZ]));
+        terrainTintLayers[blockZ].SetPixels(blockX * MapCoordinates.BlockSize, blockY * MapCoordinates.BlockSize, MapCoordinates.BlockSize, MapCoordinates.BlockSize, GetColorBlock(blockX, blockY, terrainTintColor[blockZ]));
         terrainTintLayers[blockZ].Apply();
     }
 
@@ -260,7 +260,7 @@ public class SplatManager : MonoBehaviour
         if (terrainSplatLayers[blockZ].width != MapDataStore.MapSize.x || terrainSplatLayers[blockZ].height != MapDataStore.MapSize.y)
             terrainSplatLayers[blockZ].Reinitialize(MapDataStore.MapSize.x, MapDataStore.MapSize.y);
 
-        terrainSplatLayers[blockZ].SetPixels(blockX * GameMap.blockSize, blockY * GameMap.blockSize, GameMap.blockSize, GameMap.blockSize, GetColorBlock(blockX, blockY, terrainSplatColor[blockZ]));
+        terrainSplatLayers[blockZ].SetPixels(blockX * MapCoordinates.BlockSize, blockY * MapCoordinates.BlockSize, MapCoordinates.BlockSize, MapCoordinates.BlockSize, GetColorBlock(blockX, blockY, terrainSplatColor[blockZ]));
         terrainSplatLayers[blockZ].Apply();
         GameMap.EndSample();
     }
@@ -299,8 +299,8 @@ public class SplatManager : MonoBehaviour
 
         int grassTiles = 0;
 
-        for (int y = blockY * GameMap.blockSize; y < (blockY + 1) * GameMap.blockSize; y++)
-            for (int x = blockX * GameMap.blockSize; x < (blockX + 1) * GameMap.blockSize; x++)
+        for (int y = blockY * MapCoordinates.BlockSize; y < (blockY + 1) * MapCoordinates.BlockSize; y++)
+            for (int x = blockX * MapCoordinates.BlockSize; x < (blockX + 1) * MapCoordinates.BlockSize; x++)
             {
                 int index = x + (y * MapDataStore.MapSize.x);
                 var tile = MapDataStore.Main[x, y, blockZ];
@@ -380,7 +380,7 @@ public class SplatManager : MonoBehaviour
         if (grassSplatLayers[blockZ].width != MapDataStore.MapSize.x || terrainSplatLayers[blockZ].height != MapDataStore.MapSize.y)
             grassSplatLayers[blockZ].Reinitialize(MapDataStore.MapSize.x, MapDataStore.MapSize.y);
 
-        grassSplatLayers[blockZ].SetPixels(blockX * GameMap.blockSize, blockY * GameMap.blockSize, GameMap.blockSize, GameMap.blockSize, GetColorBlock(blockX, blockY, grassSplatColor[blockZ]));
+        grassSplatLayers[blockZ].SetPixels(blockX * MapCoordinates.BlockSize, blockY * MapCoordinates.BlockSize, MapCoordinates.BlockSize, MapCoordinates.BlockSize, GetColorBlock(blockX, blockY, grassSplatColor[blockZ]));
         grassSplatLayers[blockZ].Apply();
 
         if (grassTintLayers[blockZ] == null)
@@ -400,7 +400,7 @@ public class SplatManager : MonoBehaviour
         if (grassTintLayers[blockZ].width != MapDataStore.MapSize.x || terrainTintLayers[blockZ].height != MapDataStore.MapSize.y)
             grassTintLayers[blockZ].Reinitialize(MapDataStore.MapSize.x, MapDataStore.MapSize.y);
 
-        grassTintLayers[blockZ].SetPixels(blockX * GameMap.blockSize, blockY * GameMap.blockSize, GameMap.blockSize, GameMap.blockSize, GetColorBlock(blockX, blockY, grassTintColor[blockZ]));
+        grassTintLayers[blockZ].SetPixels(blockX * MapCoordinates.BlockSize, blockY * MapCoordinates.BlockSize, MapCoordinates.BlockSize, MapCoordinates.BlockSize, GetColorBlock(blockX, blockY, grassTintColor[blockZ]));
         grassTintLayers[blockZ].Apply();
         GameMap.EndSample();
     }
@@ -413,8 +413,8 @@ public class SplatManager : MonoBehaviour
 
         var textureColors = spatterColor[blockZ];
 
-        for (int y = blockY * GameMap.blockSize; y < (blockY + 1) * GameMap.blockSize; y++)
-            for (int x = blockX * GameMap.blockSize; x < (blockX + 1) * GameMap.blockSize; x++)
+        for (int y = blockY * MapCoordinates.BlockSize; y < (blockY + 1) * MapCoordinates.BlockSize; y++)
+            for (int x = blockX * MapCoordinates.BlockSize; x < (blockX + 1) * MapCoordinates.BlockSize; x++)
             {
                 Color totalColor = new Color(0, 0, 0, 0);
                 int index = x + (y * MapDataStore.MapSize.x);
@@ -524,7 +524,7 @@ public class SplatManager : MonoBehaviour
             spatterLayers[blockZ].SetPixels(spatterColor[blockZ]);
         }
 
-        spatterLayers[blockZ].SetPixels(blockX * GameMap.blockSize, blockY * GameMap.blockSize, GameMap.blockSize, GameMap.blockSize, GetColorBlock(blockX, blockY, spatterColor[blockZ]));
+        spatterLayers[blockZ].SetPixels(blockX * MapCoordinates.BlockSize, blockY * MapCoordinates.BlockSize, MapCoordinates.BlockSize, MapCoordinates.BlockSize, GetColorBlock(blockX, blockY, spatterColor[blockZ]));
         spatterLayers[blockZ].Apply();
         GameMap.EndSample();
     }
@@ -577,12 +577,12 @@ public class SplatManager : MonoBehaviour
     static Color[] GetColorBlock(int blockX, int blockY, Color[] colors)
     {
         if (tempColorBlock == null)
-            tempColorBlock = new Color[GameMap.blockSize * GameMap.blockSize];
+            tempColorBlock = new Color[MapCoordinates.BlockSize * MapCoordinates.BlockSize];
 
-        for (int y = 0; y < GameMap.blockSize; y++)
-            for (int x = 0; x < GameMap.blockSize; x++)
+        for (int y = 0; y < MapCoordinates.BlockSize; y++)
+            for (int x = 0; x < MapCoordinates.BlockSize; x++)
             {
-                tempColorBlock[x + (y * GameMap.blockSize)] = colors[(x + blockX * GameMap.blockSize) + ((y + blockY * GameMap.blockSize) * MapDataStore.MapSize.x)];
+                tempColorBlock[x + (y * MapCoordinates.BlockSize)] = colors[(x + blockX * MapCoordinates.BlockSize) + ((y + blockY * MapCoordinates.BlockSize) * MapDataStore.MapSize.x)];
             }
         return tempColorBlock;
     }

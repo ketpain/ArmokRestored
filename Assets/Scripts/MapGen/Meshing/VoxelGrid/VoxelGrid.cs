@@ -127,8 +127,8 @@ public class VoxelGrid : MonoBehaviour
         }
         TriangulateCellRows();
 
-        ConvertToMesh(wallPolygons.Polygons, GameMap.tileHeight);
-        ConvertToMesh(floorPolygons.Polygons, GameMap.floorHeight);
+        ConvertToMesh(wallPolygons.Polygons, MapCoordinates.TileHeight);
+        ConvertToMesh(floorPolygons.Polygons, MapCoordinates.FloorHeight);
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.uv = uvs.ToArray();
@@ -1092,8 +1092,8 @@ public class VoxelGrid : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        wallPolygons.DrawGizmos(transform, Color.green, Color.blue, GameMap.tileHeight);
-        floorPolygons.DrawGizmos(transform, Color.magenta, Color.yellow, GameMap.floorHeight);
+        wallPolygons.DrawGizmos(transform, Color.green, Color.blue, MapCoordinates.TileHeight);
+        floorPolygons.DrawGizmos(transform, Color.magenta, Color.yellow, MapCoordinates.FloorHeight);
         foreach (var item in voxels)
         {
             switch (item.state)
@@ -1134,7 +1134,7 @@ public class VoxelGrid : MonoBehaviour
                         index = vertices.Count;
                         pointIndices[point] = index;
                         vertices.Add(new Vector3(point.Xf, height, point.Yf));
-                        uvs.Add(new Vector2(point.Xf / GameMap.tileWidth, point.Yf / GameMap.tileWidth));
+                        uvs.Add(new Vector2(point.Xf / MapCoordinates.TileWidth, point.Yf / MapCoordinates.TileWidth));
                     }
                     else
                         index = pointIndices[point];
@@ -1149,13 +1149,13 @@ public class VoxelGrid : MonoBehaviour
         switch (wallType)
         {
             case WallType.Floor:
-                AddWallMesh(GameMap.floorHeight, 0, points);
+                AddWallMesh(MapCoordinates.FloorHeight, 0, points);
                 break;
             case WallType.Wall:
-                AddWallMesh(GameMap.tileHeight, GameMap.floorHeight, points);
+                AddWallMesh(MapCoordinates.TileHeight, MapCoordinates.FloorHeight, points);
                 break;
             case WallType.Both:
-                AddWallMesh(GameMap.tileHeight, 0, points);
+                AddWallMesh(MapCoordinates.TileHeight, 0, points);
                 break;
             default:
                 break;
@@ -1164,8 +1164,8 @@ public class VoxelGrid : MonoBehaviour
 
     void AddWallMesh(float top, float bottom, params Vector3[] points)
     {
-        float uvTop = top / GameMap.tileHeight;
-        float uvBottom = bottom / GameMap.tileHeight;
+        float uvTop = top / MapCoordinates.TileHeight;
+        float uvBottom = bottom / MapCoordinates.TileHeight;
 
         float length = 0;
         for(int i = 0; i < points.Length-1; i++)

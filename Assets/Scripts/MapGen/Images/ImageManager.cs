@@ -93,7 +93,7 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
                     filter.mesh = CreateMesh(engraving.image, Direction.WallNorthEast, 2);
                 else
                     continue;
-                engravingObject.transform.position = GameMap.DFtoUnityCoord(engraving.pos) + new Vector3(0, GameMap.floorHeight);
+                engravingObject.transform.position = MapCoordinates.DFtoUnityCoord(engraving.pos) + new Vector3(0, MapCoordinates.FloorHeight);
                 var eng = engravingObject.AddComponent<CarvedEngraving>();
                 eng.image = engraving;
             }
@@ -280,22 +280,22 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
                     case Direction.Wall4:
                         //South
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, -GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, -MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 0),
                             new Vector3(size, size, size)));
                         //West
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(-GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(-MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 90),
                             new Vector3(size, size, size)));
                         //North
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 180),
                             new Vector3(size, size, size)));
                         //East
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 270),
                             new Vector3(size, size, size)));
                         break;
@@ -308,76 +308,76 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
                     case Direction.WallNorth:
                         //North
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 180),
                             new Vector3(size, size, size)));
                         break;
                     case Direction.WallNorthWest:
                         //West
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(-GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(-MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 90),
                             new Vector3(size, size, size)));
                         //North
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 180),
                             new Vector3(size, size, size)));
                         break;
                     case Direction.WallWest:
                         //West
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(-GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(-MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 90),
                             new Vector3(size, size, size)));
                         break;
                     case Direction.WallSouthWest:
                         //South
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, -GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, -MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 0),
                             new Vector3(size, size, size)));
                         //West
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(-GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(-MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 90),
                             new Vector3(size, size, size)));
                         break;
                     case Direction.WallSouth:
                         //South
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, -GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, -MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 0),
                             new Vector3(size, size, size)));
                         break;
                     case Direction.WallSouthEast:
                         //South
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, -GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, -MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 0),
                             new Vector3(size, size, size)));
                         //East
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 270),
                             new Vector3(size, size, size)));
                         break;
                     case Direction.WallEast:
                         //East
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 270),
                             new Vector3(size, size, size)));
                         break;
                     case Direction.WallNorthEast:
                         //North
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(0, GameMap.tileWidth / 2, GameMap.tileWidth / 2),
+                            new Vector3(0, MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2),
                             Quaternion.Euler(-90, 0, 180),
                             new Vector3(size, size, size)));
                         //East
                         AddRectToMesh(item, tile, Matrix4x4.TRS(
-                            new Vector3(GameMap.tileWidth / 2, GameMap.tileWidth / 2, 0),
+                            new Vector3(MapCoordinates.TileWidth / 2, MapCoordinates.TileWidth / 2, 0),
                             Quaternion.Euler(-90, 0, 270),
                             new Vector3(size, size, size)));
                         break;

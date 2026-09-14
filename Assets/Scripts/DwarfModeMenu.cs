@@ -68,7 +68,7 @@ public class DwarfModeMenu : MonoBehaviour
                 int x_local = x + prevBuildSelector.radius_x_low - mouseCenter.x;
                 int y_local = y + prevBuildSelector.radius_y_low - mouseCenter.y;
                 int tile = prevBuildSelector.tiles[x_local + (y_local * (prevBuildSelector.radius_x_low + prevBuildSelector.radius_x_high + 1))];
-                var drawCenter = GameMap.DFtoUnityCoord(x, y, mouseCenter.z);
+                var drawCenter = MapCoordinates.DFtoUnityCoord(x, y, mouseCenter.z);
                 switch (tile)
                 {
                     case 0:
@@ -104,7 +104,7 @@ public class DwarfModeMenu : MonoBehaviour
 
     Vector3 GetMouseCenter()
     {
-        Vector3 viewCenter = GameMap.DFtoUnityCoord(GameMap.Instance.PosXTile, GameMap.Instance.PosYTile, GameMap.Instance.PosZ - 1) + new Vector3(0, GameMap.floorHeight, 0);
+        Vector3 viewCenter = MapCoordinates.DFtoUnityCoord(GameMap.Instance.PosXTile, GameMap.Instance.PosYTile, GameMap.Instance.PosZ - 1) + new Vector3(0, MapCoordinates.FloorHeight, 0);
         var groundPlane = new Plane(Vector3.up, viewCenter);
         Ray mouseRay = Camera.main.ScreenPointToRay(ArmokInput.PointerPosition);
         float distance;
@@ -114,7 +114,7 @@ public class DwarfModeMenu : MonoBehaviour
 
     DFHack.DFCoord GetMouseCenterDF()
     {
-        return GameMap.UnityToDFCoord(GetMouseCenter());
+        return MapCoordinates.UnityToDFCoord(GetMouseCenter());
     }
 
     #region Button Callbacks

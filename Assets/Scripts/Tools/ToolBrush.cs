@@ -54,7 +54,7 @@ public class ToolBrush : MonoBehaviour
                     {
                         //lastTargetPos = mapTargetPos;
                         hit.point += (ray.direction * 0.001f);
-                        lastTargetPosF = GameMap.UnityToFloatingDFCoord(hit.point);
+                        lastTargetPosF = MapCoordinates.UnityToFloatingDFCoord(hit.point);
                         drawing = true;
                     }
                 }
@@ -68,7 +68,7 @@ public class ToolBrush : MonoBehaviour
                 if (MapDataStore.Raycast(ray, out mapTargetPos, out hit))
                 {
                     hit.point += (ray.direction * 0.001f);
-                    Vector3 mapFloatTargetPos = GameMap.UnityToFloatingDFCoord(hit.point);
+                    Vector3 mapFloatTargetPos = MapCoordinates.UnityToFloatingDFCoord(hit.point);
                     switch (brushShape)
                     {
                         case BrushShape.Freehand:
@@ -109,7 +109,7 @@ public class ToolBrush : MonoBehaviour
                 if (MapDataStore.Raycast(ray, out mapTargetPos, out hit))
                 {
                     hit.point += ray.direction * 0.001f;
-                    Vector3 pos = GameMap.UnityToFloatingDFCoord(hit.point);
+                    Vector3 pos = MapCoordinates.UnityToFloatingDFCoord(hit.point);
                     mapTargetPos = new DFCoord(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
                     DrawCursor(mapTargetPos, false);
                 }
@@ -119,7 +119,7 @@ public class ToolBrush : MonoBehaviour
 
     void DrawCursor(DFCoord pos, bool active)
     {
-        Matrix4x4 matrix = Matrix4x4.TRS(GameMap.DFtoUnityCoord(pos), Quaternion.identity, Vector3.one);
+        Matrix4x4 matrix = Matrix4x4.TRS(MapCoordinates.DFtoUnityCoord(pos), Quaternion.identity, Vector3.one);
         Graphics.DrawMesh(cursorMesh, matrix, active ? activeCursorMaterial : cursorMaterial, 5);
     }
 

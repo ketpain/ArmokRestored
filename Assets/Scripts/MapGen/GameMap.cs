@@ -43,14 +43,14 @@ public class GameMap : MonoBehaviour
     {
         get
         {
-            return PosXTile / blockSize;
+            return PosXTile / MapCoordinates.BlockSize;
         }
     }
     public int PosYBlock
     {
         get
         {
-            return PosYTile / blockSize;
+            return PosYTile / MapCoordinates.BlockSize;
         }
     }
     public int PosXTile { get; private set; }
@@ -75,87 +75,6 @@ public class GameMap : MonoBehaviour
     // Stuff to let the material list & various meshes & whatnot be loaded from xml specs at runtime.
     public static Dictionary<BuildingStruct, BuildingDefinition> buildings;
     public static Dictionary<MatPairStruct, MaterialDefinition> creatures;
-
-    // Coordinate system stuff.
-    public const float tileHeight = 3.0f;
-    public const float floorHeight = 0.5f;
-    public const float tileWidth = 2.0f;
-    public const int blockSize = 16;
-
-    static object mapZOffsetLock = new object();
-    static int _mapZoffset = 0;
-    public static int MapZOffset
-    {
-        get
-        {
-            lock (mapZOffsetLock)
-            {
-                return _mapZoffset;
-            }
-        }
-        set
-        {
-            lock (mapZOffsetLock)
-            {
-                _mapZoffset = value;
-            }
-        }
-    }
-    public static Vector3 DFtoUnityCoord(int x, int y, int z)
-    {
-        Vector3 outCoord = new Vector3(x * tileWidth, (z + MapZOffset) * tileHeight, y * (-tileWidth));
-        return outCoord;
-    }
-    public static Vector3 DFtoUnityCoord(float x, float y, float z)
-    {
-        Vector3 outCoord = new Vector3(x * tileWidth, (z + MapZOffset) * tileHeight, y * (-tileWidth));
-        return outCoord;
-    }
-    public static Vector3 DFtoUnityDirection(float x, float y, float z)
-    {
-        return new Vector3(x* tileWidth, z *tileHeight, y * (-tileWidth));
-    }
-    public static Vector3 DFtoUnityCoord(DFCoord input)
-    {
-        Vector3 outCoord = new Vector3(input.x * tileWidth, (input.z + MapZOffset) * tileHeight, input.y * (-tileWidth));
-        return outCoord;
-    }
-    public static Vector3 DFtoUnityDirection(DFCoord input)
-    {
-        return DFtoUnityDirection(input.x, input.y, input.z);
-    }
-    public static Vector3 DFtoUnityTileCenter(DFCoord input)
-    {
-        Vector3 result = DFtoUnityCoord(input);
-        result.y += tileHeight / 2;
-        return result;
-    }
-    public static Vector3 DFtoUnityBottomCorner(DFCoord input)
-    {
-        Vector3 result = DFtoUnityCoord(input);
-        result.x -= tileWidth / 2;
-        result.z -= tileWidth / 2;
-        return result;
-    }
-    public static DFCoord UnityToDFCoord(Vector3 input)
-    {
-        int x = Mathf.RoundToInt(input.x / tileWidth);
-        int y = Mathf.RoundToInt(input.z / -tileWidth);
-        int z = Mathf.FloorToInt(input.y / tileHeight);
-        return new DFCoord(x, y, z - MapZOffset);
-    }
-    public static Vector3 UnityToFloatingDFCoord(Vector3 input)
-    {
-        float x = input.x / tileWidth;
-        float y = input.z / -tileWidth;
-        float z = input.y / tileHeight;
-        return new Vector3(x + 0.5f, y + 0.5f, z - MapZOffset);
-    }
-    public static bool IsBlockCorner(DFCoord input)
-    {
-        return input.x % blockSize == 0 &&
-               input.y % blockSize == 0;
-    }
 
     // Does about what you'd think it does.
     void Start()
@@ -386,16 +305,16 @@ public class GameMap : MonoBehaviour
     }
     private void UpdateBlockVisibility()
     {
-        Shader.SetGlobalVector("_ViewMin", DFtoUnityBottomCorner(new DFCoord(
-            Mathf.Max((PosXBlock - GameSettings.Instance.rendering.drawRangeSide + 1) * blockSize, 0),
-            Mathf.Min((PosYBlock + GameSettings.Instance.rendering.drawRangeSide) * blockSize, mapSize.y * 16),
+        Shader.SetGlobalVector("_ViewMin", MapCoordinates.DFtoUnityBottomCorner(new DFCoord(
+            Mathf.Max((PosXBlock - GameSettings.Instance.rendering.drawRangeSide + 1) * MapCoordinates.BlockSize, 0),
+            Mathf.Min((PosYBlock + GameSettings.Instance.rendering.drawRangeSide) * MapCoordinates.BlockSize, mapSize.y * 16),
             -9999
-        )) + new Vector3(0, 0, GameMap.tileWidth));
-        Shader.SetGlobalVector("_ViewMax", DFtoUnityBottomCorner(new DFCoord(
-            Mathf.Min((PosXBlock + GameSettings.Instance.rendering.drawRangeSide) * blockSize, mapSize.x * 16),
-            Mathf.Max((PosYBlock - GameSettings.Instance.rendering.drawRangeSide + 1) * blockSize, 0),
+        )) + new Vector3(0, 0, MapCoordinates.TileWidth));
+        Shader.SetGlobalVector("_ViewMax", MapCoordinates.DFtoUnityBottomCorner(new DFCoord(
+            Mathf.Min((PosXBlock + GameSettings.Instance.rendering.drawRangeSide) * MapCoordinates.BlockSize, mapSize.x * 16),
+            Mathf.Max((PosYBlock - GameSettings.Instance.rendering.drawRangeSide + 1) * MapCoordinates.BlockSize, 0),
             9999
-        )) + new Vector3(0, 0, GameMap.tileWidth));
+        )) + new Vector3(0, 0, MapCoordinates.TileWidth));
 
         for (int z = 0; z < mapMeshes.GetLength(2); z++)
         {
@@ -428,10 +347,10 @@ public class GameMap : MonoBehaviour
     {
         return (coord.z < (Instance.firstPerson ? Instance.PosZ + GameSettings.Instance.rendering.drawRangeUp : Instance.PosZ))
                     && (coord.z >= (Instance.PosZ - GameSettings.Instance.rendering.drawRangeDown))
-                    && (coord.x / blockSize > (Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
-                    && (coord.x / blockSize < (Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
-                    && (coord.y / blockSize > (Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
-                    && (coord.y / blockSize < (Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide));
+                    && (coord.x / MapCoordinates.BlockSize > (Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
+                    && (coord.x / MapCoordinates.BlockSize < (Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
+                    && (coord.y / MapCoordinates.BlockSize > (Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
+                    && (coord.y / MapCoordinates.BlockSize < (Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide));
     }
 
     BlockMeshSet.Visibility GetVisibility(int z)
@@ -778,7 +697,7 @@ public class GameMap : MonoBehaviour
         {
             ClearMap();
             mapPosition = DFConnection.Instance.EmbarkMapPosition;
-            MapZOffset = DFConnection.Instance.EmbarkMapPosition.z;
+            MapCoordinates.MapZOffset = DFConnection.Instance.EmbarkMapPosition.z;
             DFConnection.Instance.RequestMapReset();
         }
         if (MapDataStore.MapSize.x < 48)
@@ -879,19 +798,19 @@ public class GameMap : MonoBehaviour
         int blockSizeX = DFConnection.Instance.EmbarkMapSize.x;
         int blockSizeY = DFConnection.Instance.EmbarkMapSize.y;
         int blockSizeZ = DFConnection.Instance.EmbarkMapSize.z;
-        MapZOffset = DFConnection.Instance.EmbarkMapPosition.z;
+        MapCoordinates.MapZOffset = DFConnection.Instance.EmbarkMapPosition.z;
 
-        mapMeshes = new BlockMeshSet[blockSizeX * 16 / blockSize, blockSizeY * 16 / blockSize, blockSizeZ];
+        mapMeshes = new BlockMeshSet[blockSizeX * 16 / MapCoordinates.BlockSize, blockSizeY * 16 / MapCoordinates.BlockSize, blockSizeZ];
 
-        blockDirtyBits = new bool[blockSizeX * 16 / blockSize, blockSizeY * 16 / blockSize, blockSizeZ];
-        blockContentBits = new bool[blockSizeX * 16 / blockSize, blockSizeY * 16 / blockSize, blockSizeZ];
-        blockUpdateSchedules = new UpdateSchedule[blockSizeX * 16 / blockSize, blockSizeY * 16 / blockSize, blockSizeZ];
-        liquidBlockDirtyBits = new bool[blockSizeX * 16 / blockSize, blockSizeY * 16 / blockSize, blockSizeZ];
+        blockDirtyBits = new bool[blockSizeX * 16 / MapCoordinates.BlockSize, blockSizeY * 16 / MapCoordinates.BlockSize, blockSizeZ];
+        blockContentBits = new bool[blockSizeX * 16 / MapCoordinates.BlockSize, blockSizeY * 16 / MapCoordinates.BlockSize, blockSizeZ];
+        blockUpdateSchedules = new UpdateSchedule[blockSizeX * 16 / MapCoordinates.BlockSize, blockSizeY * 16 / MapCoordinates.BlockSize, blockSizeZ];
+        liquidBlockDirtyBits = new bool[blockSizeX * 16 / MapCoordinates.BlockSize, blockSizeY * 16 / MapCoordinates.BlockSize, blockSizeZ];
         magmaGlow = new Light[blockSizeX * 16, blockSizeY * 16, blockSizeZ];
-        SplatManager.Instance.Init(blockSizeX * 16 / blockSize, blockSizeY * 16 / blockSize, blockSizeZ);
+        SplatManager.Instance.Init(blockSizeX * 16 / MapCoordinates.BlockSize, blockSizeY * 16 / MapCoordinates.BlockSize, blockSizeZ);
 
-        Vector3 min = DFtoUnityCoord(0, 0, 0) - new Vector3(tileWidth / 2, 0, -tileWidth / 2);
-        Vector3 max = DFtoUnityCoord((blockSizeX * 16) - 1, (blockSizeY * 16) - 1, 0) + new Vector3(tileWidth / 2, 0, -tileWidth / 2);
+        Vector3 min = MapCoordinates.DFtoUnityCoord(0, 0, 0) - new Vector3(MapCoordinates.TileWidth / 2, 0, -MapCoordinates.TileWidth / 2);
+        Vector3 max = MapCoordinates.DFtoUnityCoord((blockSizeX * 16) - 1, (blockSizeY * 16) - 1, 0) + new Vector3(MapCoordinates.TileWidth / 2, 0, -MapCoordinates.TileWidth / 2);
 
         SetMaterialBounds(new Vector4(min.x, min.z, max.x, max.z));
     }
@@ -900,8 +819,8 @@ public class GameMap : MonoBehaviour
     {
         if (DFConnection.Instance.NetPlantRawList == null)
             return;
-        mapBlockX /= blockSize;
-        mapBlockY /= blockSize;
+        mapBlockX /= MapCoordinates.BlockSize;
+        mapBlockY /= MapCoordinates.BlockSize;
         if (blockUpdateSchedules[mapBlockX, mapBlockY, mapBlockZ] != null)
             blockUpdateSchedules[mapBlockX, mapBlockY, mapBlockZ].Clear();
         foreach (var material in block.materials)
@@ -930,8 +849,8 @@ public class GameMap : MonoBehaviour
 
     void SetDirtyBlock(int mapBlockX, int mapBlockY, int mapBlockZ)
     {
-        mapBlockX /= blockSize;
-        mapBlockY /= blockSize;
+        mapBlockX /= MapCoordinates.BlockSize;
+        mapBlockY /= MapCoordinates.BlockSize;
         blockDirtyBits[mapBlockX, mapBlockY, mapBlockZ] = true;
         SplatManager.Instance.DirtyGrass(mapBlockX, mapBlockY, mapBlockZ);
         SplatManager.Instance.DirtyLayer(mapBlockX, mapBlockY, mapBlockZ);
@@ -944,20 +863,20 @@ public class GameMap : MonoBehaviour
     }
     void SetBlockContent(int mapBlockX, int mapBlockY, int mapBlockZ)
     {
-        mapBlockX /= blockSize;
-        mapBlockY /= blockSize;
+        mapBlockX /= MapCoordinates.BlockSize;
+        mapBlockY /= MapCoordinates.BlockSize;
         blockContentBits[mapBlockX, mapBlockY, mapBlockZ] = true;
     }
     void SetDirtyLiquidBlock(int mapBlockX, int mapBlockY, int mapBlockZ)
     {
-        mapBlockX /= blockSize;
-        mapBlockY /= blockSize;
+        mapBlockX /= MapCoordinates.BlockSize;
+        mapBlockY /= MapCoordinates.BlockSize;
         liquidBlockDirtyBits[mapBlockX, mapBlockY, mapBlockZ] = true;
     }
     private void SetDirtySpatterBlock(int map_x, int map_y, int map_z)
     {
-        map_x /= blockSize;
-        map_y /= blockSize;
+        map_x /= MapCoordinates.BlockSize;
+        map_y /= MapCoordinates.BlockSize;
         SplatManager.Instance.DirtySpatter(map_x, map_y, map_z);
 
     }
@@ -1150,7 +1069,7 @@ public class GameMap : MonoBehaviour
                     continue;
                 }
                 //If we were not able to add it to the queue, don't try any more till next fame.
-                if (!mesher.Enqueue(new DFCoord(PosXBlock * blockSize, PosYBlock * blockSize, zz), blockDirtyBits[PosXBlock, PosYBlock, zz], liquidBlockDirtyBits[PosXBlock, PosYBlock, zz]))
+                if (!mesher.Enqueue(new DFCoord(PosXBlock * MapCoordinates.BlockSize, PosYBlock * MapCoordinates.BlockSize, zz), blockDirtyBits[PosXBlock, PosYBlock, zz], liquidBlockDirtyBits[PosXBlock, PosYBlock, zz]))
                     return;
                 blockDirtyBits[PosXBlock, PosYBlock, zz] = false;
                 liquidBlockDirtyBits[PosXBlock, PosYBlock, zz] = false;
@@ -1174,7 +1093,7 @@ public class GameMap : MonoBehaviour
                     }
 
                     //If we were not able to add it to the queue, don't try any more till next fame.
-                    if (!mesher.Enqueue(new DFCoord(xx * blockSize, yy * blockSize, zz), blockDirtyBits[xx, yy, zz], liquidBlockDirtyBits[xx, yy, zz]))
+                    if (!mesher.Enqueue(new DFCoord(xx * MapCoordinates.BlockSize, yy * MapCoordinates.BlockSize, zz), blockDirtyBits[xx, yy, zz], liquidBlockDirtyBits[xx, yy, zz]))
                         return;
                     blockDirtyBits[xx, yy, zz] = false;
                     liquidBlockDirtyBits[xx, yy, zz] = false;
@@ -1198,7 +1117,7 @@ public class GameMap : MonoBehaviour
                     }
 
                     //If we were not able to add it to the queue, don't try any more till next fame.
-                    if (!mesher.Enqueue(new DFCoord(xx * blockSize, yy * blockSize, zz), blockDirtyBits[xx, yy, zz], liquidBlockDirtyBits[xx, yy, zz]))
+                    if (!mesher.Enqueue(new DFCoord(xx * MapCoordinates.BlockSize, yy * MapCoordinates.BlockSize, zz), blockDirtyBits[xx, yy, zz], liquidBlockDirtyBits[xx, yy, zz]))
                         return;
                     blockDirtyBits[xx, yy, zz] = false;
                     liquidBlockDirtyBits[xx, yy, zz] = false;
@@ -1223,12 +1142,12 @@ public class GameMap : MonoBehaviour
             if (blockPrefab == null)
                 blockPrefab = Resources.Load<BlockMeshSet>("MapBlock");
             var newMeshes = mesher.Dequeue().Value;
-            int block_x = newMeshes.location.x / blockSize;
-            int block_y = newMeshes.location.y / blockSize;
+            int block_x = newMeshes.location.x / MapCoordinates.BlockSize;
+            int block_y = newMeshes.location.y / MapCoordinates.BlockSize;
             int block_z = newMeshes.location.z;
             if (mapMeshes[block_x, block_y, block_z] == null)
             {
-                mapMeshes[block_x, block_y, block_z] = Instantiate(blockPrefab, DFtoUnityCoord(newMeshes.location), Quaternion.identity, transform);
+                mapMeshes[block_x, block_y, block_z] = Instantiate(blockPrefab, MapCoordinates.DFtoUnityCoord(newMeshes.location), Quaternion.identity, transform);
                 mapMeshes[block_x, block_y, block_z].name = string.Format("Block_{0}_{1}_{2}", block_x, block_y, block_z);
                 mapMeshes[block_x, block_y, block_z].Init();
 
@@ -1276,7 +1195,7 @@ public class GameMap : MonoBehaviour
 
     public void UpdateCenter(Vector3 pos)
     {
-        DFCoord dfPos = UnityToDFCoord(pos);
+        DFCoord dfPos = MapCoordinates.UnityToDFCoord(pos);
         PosXTile = dfPos.x;
         PosYTile = dfPos.y;
         PosZ = dfPos.z + 1;
@@ -1325,7 +1244,7 @@ public class GameMap : MonoBehaviour
 
     //            var part = new ParticleSystem.Particle();
     //            part.startSize = 1;
-    //            part.position = DFtoUnityCoord(currentItem.pos) + new Vector3(0, floorHeight + 0.1f, 0) + Stacker.SpiralHemisphere(index);
+    //            part.position = MapCoordinates.DFtoUnityCoord(currentItem.pos) + new Vector3(0, MapCoordinates.FloorHeight + 0.1f, 0) + Stacker.SpiralHemisphere(index);
     //            if (ContentLoader.Instance.ColorConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out colorContent))
     //                part.startColor = colorContent.color;
     //            else if (materials.ContainsKey(currentItem.material) && materials[currentItem.material].state_color != null)

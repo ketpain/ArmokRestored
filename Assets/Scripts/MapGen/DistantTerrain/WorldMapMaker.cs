@@ -80,12 +80,12 @@ public class WorldMapMaker : MonoBehaviour
         worldName = remoteMap.name;
         worldNameEnglish = remoteMap.name_english;
         transform.position = new Vector3(
-        ((-remoteMap.center_x * 48) - 0.5f) * GameMap.tileWidth,
+        ((-remoteMap.center_x * 48) - 0.5f) * MapCoordinates.TileWidth,
         0,
-        ((remoteMap.center_y * 48) + 0.5f) * GameMap.tileWidth);
+        ((remoteMap.center_y * 48) + 0.5f) * MapCoordinates.TileWidth);
 
         terrainMat.SetFloat("_Scale", scale);
-        terrainMat.SetFloat("_SeaLevel", (99 * GameMap.tileHeight) + transform.position.y);
+        terrainMat.SetFloat("_SeaLevel", (99 * MapCoordinates.TileHeight) + transform.position.y);
 
         InitArrays();
         for (int x = 0; x < width; x++)
@@ -259,9 +259,9 @@ public class WorldMapMaker : MonoBehaviour
     Vector3 RegionToUnityCoords(int x, int y, int z)
     {
         return new Vector3(
-            x * 48 * 16 * GameMap.tileWidth,
-            z * GameMap.tileHeight,
-            -y * 48 * 16 * GameMap.tileWidth
+            x * 48 * 16 * MapCoordinates.TileWidth,
+            z * MapCoordinates.TileHeight,
+            -y * 48 * 16 * MapCoordinates.TileWidth
             );
     }
 
@@ -383,8 +383,8 @@ public class WorldMapMaker : MonoBehaviour
                     north = regionTiles[x, y - 1].elevation;
                 if (north < regionTiles[x, y].elevation)
                 {
-                    vert1 = (new Vector3(x * 48 * 16 * GameMap.tileWidth, regionTiles[x, y].elevation * GameMap.tileHeight, -y * 48 * 16 * GameMap.tileWidth)) * scale;
-                    vert2 = (new Vector3((x + 1) * 48 * 16 * GameMap.tileWidth, north * GameMap.tileHeight, -y * 48 * 16 * GameMap.tileWidth)) * scale;
+                    vert1 = (new Vector3(x * 48 * 16 * MapCoordinates.TileWidth, regionTiles[x, y].elevation * MapCoordinates.TileHeight, -y * 48 * 16 * MapCoordinates.TileWidth)) * scale;
+                    vert2 = (new Vector3((x + 1) * 48 * 16 * MapCoordinates.TileWidth, north * MapCoordinates.TileHeight, -y * 48 * 16 * MapCoordinates.TileWidth)) * scale;
 
                     RegionMaker.AddVerticalQuad(vert1, vert2, biome, terrainColor, vertices, colors, uvs, uv2s, uv3s, triangles, snow);
                 }
@@ -394,8 +394,8 @@ public class WorldMapMaker : MonoBehaviour
                     south = regionTiles[x, y + 1].elevation;
                 if (south < regionTiles[x, y].elevation)
                 {
-                    vert1 = (new Vector3((x + 1) * 48 * 16 * GameMap.tileWidth, regionTiles[x, y].elevation * GameMap.tileHeight, -(y + 1) * 48 * 16 * GameMap.tileWidth)) * scale;
-                    vert2 = (new Vector3(x * 48 * 16 * GameMap.tileWidth, south * GameMap.tileHeight, -(y + 1) * 48 * 16 * GameMap.tileWidth)) * scale;
+                    vert1 = (new Vector3((x + 1) * 48 * 16 * MapCoordinates.TileWidth, regionTiles[x, y].elevation * MapCoordinates.TileHeight, -(y + 1) * 48 * 16 * MapCoordinates.TileWidth)) * scale;
+                    vert2 = (new Vector3(x * 48 * 16 * MapCoordinates.TileWidth, south * MapCoordinates.TileHeight, -(y + 1) * 48 * 16 * MapCoordinates.TileWidth)) * scale;
 
                     RegionMaker.AddVerticalQuad(vert1, vert2, biome, terrainColor, vertices, colors, uvs, uv2s, uv3s, triangles, snow);
                 }
@@ -405,8 +405,8 @@ public class WorldMapMaker : MonoBehaviour
                     east = regionTiles[x + 1, y].elevation;
                 if (east < regionTiles[x, y].elevation)
                 {
-                    vert1 = (new Vector3((x + 1) * 48 * 16 * GameMap.tileWidth, regionTiles[x, y].elevation * GameMap.tileHeight, -y * 48 * 16 * GameMap.tileWidth)) * scale;
-                    vert2 = (new Vector3((x + 1) * 48 * 16 * GameMap.tileWidth, east * GameMap.tileHeight, -(y + 1) * 48 * 16 * GameMap.tileWidth)) * scale;
+                    vert1 = (new Vector3((x + 1) * 48 * 16 * MapCoordinates.TileWidth, regionTiles[x, y].elevation * MapCoordinates.TileHeight, -y * 48 * 16 * MapCoordinates.TileWidth)) * scale;
+                    vert2 = (new Vector3((x + 1) * 48 * 16 * MapCoordinates.TileWidth, east * MapCoordinates.TileHeight, -(y + 1) * 48 * 16 * MapCoordinates.TileWidth)) * scale;
 
                     RegionMaker.AddVerticalQuad(vert1, vert2, biome, terrainColor, vertices, colors, uvs, uv2s, uv3s, triangles, snow);
                 }
@@ -415,8 +415,8 @@ public class WorldMapMaker : MonoBehaviour
                     west = regionTiles[x - 1, y].elevation;
                 if (west < regionTiles[x, y].elevation)
                 {
-                    vert1 = (new Vector3(x * 48 * 16 * GameMap.tileWidth, regionTiles[x, y].elevation * GameMap.tileHeight, -(y + 1) * 48 * 16 * GameMap.tileWidth)) * scale;
-                    vert2 = (new Vector3(x * 48 * 16 * GameMap.tileWidth, west * GameMap.tileHeight, -y * 48 * 16 * GameMap.tileWidth)) * scale;
+                    vert1 = (new Vector3(x * 48 * 16 * MapCoordinates.TileWidth, regionTiles[x, y].elevation * MapCoordinates.TileHeight, -(y + 1) * 48 * 16 * MapCoordinates.TileWidth)) * scale;
+                    vert2 = (new Vector3(x * 48 * 16 * MapCoordinates.TileWidth, west * MapCoordinates.TileHeight, -y * 48 * 16 * MapCoordinates.TileWidth)) * scale;
 
                     RegionMaker.AddVerticalQuad(vert1, vert2, biome, terrainColor, vertices, colors, uvs, uv2s, uv3s, triangles, snow);
                 }
@@ -529,7 +529,7 @@ public class WorldMapMaker : MonoBehaviour
             original.GenerateMesh(cloudMap);
             original.name = name;
             original.transform.parent = transform;
-            original.transform.localPosition = new Vector3(0, height * GameMap.tileHeight * scale);
+            original.transform.localPosition = new Vector3(0, height * MapCoordinates.TileHeight * scale);
         }
         else
             original.UpdateClouds(cloudMap);

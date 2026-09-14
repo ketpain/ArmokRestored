@@ -112,15 +112,15 @@ public class AdventureMovement : MonoBehaviour
                         if (movementOption.grab == null || movementOption.grab.x < 0 || (DFCoord)movementOption.grab == movementOption.dest)
                         {
                             var move = Instantiate(movePrefab,
-                                GameMap.DFtoUnityTileCenter(movementOption.dest), Quaternion.identity, transform);
+                                MapCoordinates.DFtoUnityTileCenter(movementOption.dest), Quaternion.identity, transform);
                             move.choiceIndex = i;
                             movementChoices.Add(move);
                         }
                         else
                         {
                             var move = Instantiate(grabPrefab,
-                                (GameMap.DFtoUnityTileCenter(movementOption.dest) + GameMap.DFtoUnityTileCenter(movementOption.grab)) / 2,
-                                Quaternion.LookRotation(GameMap.DFtoUnityTileCenter(movementOption.grab) - GameMap.DFtoUnityTileCenter(movementOption.dest), Vector3.up),
+                                (MapCoordinates.DFtoUnityTileCenter(movementOption.dest) + MapCoordinates.DFtoUnityTileCenter(movementOption.grab)) / 2,
+                                Quaternion.LookRotation(MapCoordinates.DFtoUnityTileCenter(movementOption.grab) - MapCoordinates.DFtoUnityTileCenter(movementOption.dest), Vector3.up),
                                 transform);
                             move.choiceIndex = i;
                             movementChoices.Add(move);

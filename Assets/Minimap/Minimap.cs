@@ -61,7 +61,7 @@ public class Minimap : MonoBehaviour
         fogEndDistance = RenderSettings.fogEndDistance;
 
         //RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = cam.nearClipPlane + (GameMap.tileHeight * 3);
+        RenderSettings.fogStartDistance = cam.nearClipPlane + (MapCoordinates.TileHeight * 3);
         RenderSettings.fogEndDistance = cam.farClipPlane;
     }
 
@@ -74,7 +74,7 @@ public class Minimap : MonoBehaviour
 
     private void PositionCamera()
     {
-        Vector3 verticalPos = GameMap.DFtoUnityCoord(GameMap.Instance.PosXTile, GameMap.Instance.PosYTile, GameMap.Instance.PosZ);
+        Vector3 verticalPos = MapCoordinates.DFtoUnityCoord(GameMap.Instance.PosXTile, GameMap.Instance.PosYTile, GameMap.Instance.PosZ);
         transform.position = new Vector3(transform.position.x, verticalPos.y + cam.nearClipPlane, transform.position.z);
     }
 
@@ -90,15 +90,15 @@ public class Minimap : MonoBehaviour
         rawImage.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, mapSize.y * 16);
         rawImage.texture = texture;
         cam.targetTexture = texture;
-        float nearPlane = (mapSize.y * 8 * GameMap.tileWidth) / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
-        cam.farClipPlane = nearPlane + ((GameSettings.Instance.rendering.drawRangeDown + 1) * GameMap.tileHeight);
+        float nearPlane = (mapSize.y * 8 * MapCoordinates.TileWidth) / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        cam.farClipPlane = nearPlane + ((GameSettings.Instance.rendering.drawRangeDown + 1) * MapCoordinates.TileHeight);
         cam.nearClipPlane = nearPlane;
     }
 
     private void SetDrawDistance()
     {
         drawRangeDown = GameSettings.Instance.rendering.drawRangeDown;
-        transform.position = GameMap.DFtoUnityCoord(mapSize.x * 8, mapSize.y * 8, mapSize.z) + new Vector3(-1, 0, 1);
-        cam.farClipPlane = cam.nearClipPlane + ((GameSettings.Instance.rendering.drawRangeDown + 1) * GameMap.tileHeight);
+        transform.position = MapCoordinates.DFtoUnityCoord(mapSize.x * 8, mapSize.y * 8, mapSize.z) + new Vector3(-1, 0, 1);
+        cam.farClipPlane = cam.nearClipPlane + ((GameSettings.Instance.rendering.drawRangeDown + 1) * MapCoordinates.TileHeight);
     }
 }

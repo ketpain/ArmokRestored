@@ -33,7 +33,7 @@ namespace Building
                 for (int x = buildingInput.pos_x_min; x <= buildingInput.pos_x_max; x++)
                     for (int y = buildingInput.pos_y_min; y <= buildingInput.pos_y_max; y++)
                     {
-                        GameObject newPart = Instantiate(part, GameMap.DFtoUnityCoord(x, y, buildingInput.pos_z_max), BuildingManager.TranslateDirection(buildingInput.direction), transform);
+                        GameObject newPart = Instantiate(part, MapCoordinates.DFtoUnityCoord(x, y, buildingInput.pos_z_max), BuildingManager.TranslateDirection(buildingInput.direction), transform);
                         newPart.name += buildingInput.index;
                         setParts.Add(newPart);
                     }
@@ -46,7 +46,7 @@ namespace Building
                         var set = room.extents[x + y * room.width];
                         if (set == 0)
                             continue;
-                        GameObject newPart = Instantiate(part, GameMap.DFtoUnityCoord(room.pos_x + x, room.pos_y + y, buildingInput.pos_z_max), BuildingManager.TranslateDirection(buildingInput.direction), transform);
+                        GameObject newPart = Instantiate(part, MapCoordinates.DFtoUnityCoord(room.pos_x + x, room.pos_y + y, buildingInput.pos_z_max), BuildingManager.TranslateDirection(buildingInput.direction), transform);
                         newPart.name += buildingInput.index;
                         setParts.Add(newPart);
                     }

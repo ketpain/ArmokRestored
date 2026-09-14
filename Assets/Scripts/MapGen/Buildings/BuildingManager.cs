@@ -213,9 +213,9 @@ namespace Building
                     if (!buildingPrefabs.ContainsKey(type))
                         type = new BuildingStruct(-1, -1, -1);
                     if (buildingPrefabs.ContainsKey(type))
-                        builtBuilding = Instantiate(buildingPrefabs[type], GameMap.DFtoUnityCoord(origin), TranslateDirection(building.direction), transform);
+                        builtBuilding = Instantiate(buildingPrefabs[type], MapCoordinates.DFtoUnityCoord(origin), TranslateDirection(building.direction), transform);
                     else
-                        builtBuilding = Instantiate(defaultBuilding, GameMap.DFtoUnityCoord(origin), TranslateDirection(building.direction), transform);
+                        builtBuilding = Instantiate(defaultBuilding, MapCoordinates.DFtoUnityCoord(origin), TranslateDirection(building.direction), transform);
 
                     sceneBuildings[building.index] = builtBuilding;
                     Profiler.EndSample();
@@ -238,10 +238,10 @@ namespace Building
                 item.Value.gameObject.SetActive(
                     (building.pos_z_min < (GameMap.Instance.firstPerson ? GameMap.Instance.PosZ + GameSettings.Instance.rendering.drawRangeUp : GameMap.Instance.PosZ))
                     && (building.pos_z_max >= (GameMap.Instance.PosZ - GameSettings.Instance.rendering.drawRangeDown))
-                    && (building.pos_x_max / GameMap.blockSize > (GameMap.Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
-                    && (building.pos_x_min / GameMap.blockSize < (GameMap.Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
-                    && (building.pos_y_max / GameMap.blockSize > (GameMap.Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
-                    && (building.pos_y_min / GameMap.blockSize < (GameMap.Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide))
+                    && (building.pos_x_max / MapCoordinates.BlockSize > (GameMap.Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
+                    && (building.pos_x_min / MapCoordinates.BlockSize < (GameMap.Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
+                    && (building.pos_y_max / MapCoordinates.BlockSize > (GameMap.Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
+                    && (building.pos_y_min / MapCoordinates.BlockSize < (GameMap.Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide))
             );
             }
         }

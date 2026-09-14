@@ -150,7 +150,7 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
     void UpdateItem(Item item)
     {
         ItemModel placedItem;
-        var itemPos = GameMap.DFtoUnityCoord(item.pos.x + item.subpos_x, item.pos.y + item.subpos_y, item.pos.z + item.subpos_z);
+        var itemPos = MapCoordinates.DFtoUnityCoord(item.pos.x + item.subpos_x, item.pos.y + item.subpos_y, item.pos.z + item.subpos_z);
 
         //Disable the item if it's too far from the camera.
         if((itemPos - Camera.main.transform.position).sqrMagnitude > (GameSettings.Instance.rendering.itemDrawDistance * GameSettings.Instance.rendering.itemDrawDistance))
@@ -163,10 +163,10 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
         //Also disable if it's outside of the viewing AABB
         if(!((item.pos.z < (GameMap.Instance.firstPerson ? GameMap.Instance.PosZ + GameSettings.Instance.rendering.drawRangeUp : GameMap.Instance.PosZ))
                     && (item.pos.z >= (GameMap.Instance.PosZ - GameSettings.Instance.rendering.drawRangeDown))
-                    && (item.pos.x / GameMap.blockSize > (GameMap.Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
-                    && (item.pos.x / GameMap.blockSize < (GameMap.Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
-                    && (item.pos.y / GameMap.blockSize > (GameMap.Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
-                    && (item.pos.y / GameMap.blockSize < (GameMap.Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide))))
+                    && (item.pos.x / MapCoordinates.BlockSize > (GameMap.Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
+                    && (item.pos.x / MapCoordinates.BlockSize < (GameMap.Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
+                    && (item.pos.y / MapCoordinates.BlockSize > (GameMap.Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
+                    && (item.pos.y / MapCoordinates.BlockSize < (GameMap.Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide))))
         {
             if (sceneItems.ContainsKey(item.id))
                 sceneItems[item.id].gameObject.SetActive(false);
@@ -204,25 +204,25 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
             currentTileCount = itemCount[item.pos];
         itemCount[item.pos] = currentTileCount + 1;
         //RaycastHit hitInfo;
-        //Vector3 position = GameMap.DFtoUnityCoord(item.pos) + Stacker.SpiralHemisphere(currentTileCount);
+        //Vector3 position = MapCoordinates.DFtoUnityCoord(item.pos) + Stacker.SpiralHemisphere(currentTileCount);
         //if (Physics.Raycast(position + new Vector3(0, 2.9f, 0), Vector3.down, out hitInfo, 3, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
         //    placedItem.transform.position = hitInfo.point;
         //else
         placedItem.transform.position = itemPos;
         if (item.projectile)
         {
-            placedItem.transform.position += new Vector3(0, GameMap.tileHeight / 2, 0);
+            placedItem.transform.position += new Vector3(0, MapCoordinates.TileHeight / 2, 0);
             if (item.velocity_x > 0 || item.velocity_y > 0 || item.velocity_z > 0)
             {
-                placedItem.transform.rotation = Quaternion.LookRotation(GameMap.DFtoUnityDirection(item.velocity_x, item.velocity_y, item.velocity_z), Vector3.up);
+                placedItem.transform.rotation = Quaternion.LookRotation(MapCoordinates.DFtoUnityDirection(item.velocity_x, item.velocity_y, item.velocity_z), Vector3.up);
             }
         }
         else
         {
-            placedItem.transform.position += (Stacker.SpiralHemisphere(currentTileCount) + new Vector3(0, GameMap.floorHeight, 0));
+            placedItem.transform.position += (Stacker.SpiralHemisphere(currentTileCount) + new Vector3(0, MapCoordinates.FloorHeight, 0));
             if (item.velocity_x > 0 || item.velocity_y > 0 || item.velocity_z > 0)
             {
-                placedItem.transform.rotation = Quaternion.LookRotation(GameMap.DFtoUnityDirection(item.velocity_x, item.velocity_y, item.velocity_z), Vector3.up);
+                placedItem.transform.rotation = Quaternion.LookRotation(MapCoordinates.DFtoUnityDirection(item.velocity_x, item.velocity_y, item.velocity_z), Vector3.up);
             }
         }
 
@@ -246,7 +246,7 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
             prefab = itemPrefabs[type];
 
         if(worldPositionStays)
-            placedItem = Instantiate(prefab, GameMap.DFtoUnityCoord(item.pos), Quaternion.identity);
+            placedItem = Instantiate(prefab, MapCoordinates.DFtoUnityCoord(item.pos), Quaternion.identity);
         else
             placedItem = Instantiate(prefab);
 

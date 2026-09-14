@@ -87,7 +87,7 @@ public class MapSelection : MonoBehaviour
         Ray mouseRay = GetComponent<Camera>().ScreenPointToRay(mousePosition);
         if (!MapDataStore.Raycast(mouseRay, out dfTarget, out WorldPos))
         {
-            Plane currentPlane = new Plane(Vector3.up, GameMap.DFtoUnityCoord(0, 0, GameMap.Instance.PosZ));
+            Plane currentPlane = new Plane(Vector3.up, MapCoordinates.DFtoUnityCoord(0, 0, GameMap.Instance.PosZ));
             float distance;
             if (currentPlane.Raycast(mouseRay, out distance))
             {
@@ -112,7 +112,7 @@ public class MapSelection : MonoBehaviour
     //    Vector3 currentTargetCoords;
     //    if (MapDataStore.FindCurrentTarget(mouseRay, out currentTarget, out currentTargetCoords))
     //    {
-    //        var testCoords = GameMap.UnityToFloatingDFCoord(currentTargetCoords);
+    //        var testCoords = MapCoordinates.UnityToFloatingDFCoord(currentTargetCoords);
     //        testCoords += mouseRay.direction * 0.0001f;
     //        DFCoord testDF = new DFCoord(Mathf.FloorToInt(testCoords.x), Mathf.FloorToInt(testCoords.y), Mathf.FloorToInt(testCoords.z));
     //        DebugHighlightTile(testDF, Color.white);
@@ -130,8 +130,8 @@ public class MapSelection : MonoBehaviour
         highlightLineMaterial.SetPass(0);
 
 
-        Vector3 aVec = GameMap.DFtoUnityBottomCorner(a);
-        Vector3 bVec = GameMap.DFtoUnityBottomCorner(b);
+        Vector3 aVec = MapCoordinates.DFtoUnityBottomCorner(a);
+        Vector3 bVec = MapCoordinates.DFtoUnityBottomCorner(b);
 
         Vector3 lowC = new Vector3(
             Mathf.Min(aVec.x, bVec.x),
@@ -139,9 +139,9 @@ public class MapSelection : MonoBehaviour
             Mathf.Min(aVec.z, bVec.z)
             );
         Vector3 upC = new Vector3(
-            Mathf.Max(aVec.x, bVec.x) + GameMap.tileWidth,
-            Mathf.Max(aVec.y, bVec.y) + GameMap.tileHeight,
-            Mathf.Max(aVec.z, bVec.z) + GameMap.tileWidth
+            Mathf.Max(aVec.x, bVec.x) + MapCoordinates.TileWidth,
+            Mathf.Max(aVec.y, bVec.y) + MapCoordinates.TileHeight,
+            Mathf.Max(aVec.z, bVec.z) + MapCoordinates.TileWidth
             );
 
         // Bottom square

@@ -29,8 +29,8 @@ public class VoxelMap : MonoBehaviour
             }
         }
         BoxCollider box = gameObject.AddComponent<BoxCollider>();
-        box.size = new Vector3(size, GameMap.floorHeight, size);
-        box.center = new Vector3(0, GameMap.floorHeight / 2, 0);
+        box.size = new Vector3(size, MapCoordinates.FloorHeight, size);
+        box.center = new Vector3(0, MapCoordinates.FloorHeight / 2, 0);
     }
 
     private void CreateChunk(int i, int x, int y)

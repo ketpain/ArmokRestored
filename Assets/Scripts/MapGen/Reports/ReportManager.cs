@@ -36,7 +36,7 @@ public class ReportManager : MonoBehaviour
             {
                 case AnnouncementType.REGULAR_CONVERSATION:
                 case AnnouncementType.CONFLICT_CONVERSATION:
-                    var bubble = Instantiate(speechBubble, GameMap.DFtoUnityCoord(report.pos), Quaternion.identity, transform);
+                    var bubble = Instantiate(speechBubble, MapCoordinates.DFtoUnityCoord(report.pos), Quaternion.identity, transform);
                     bubble.GetComponentInChildren<Text>().text = report.text;
                     break;
                 default:

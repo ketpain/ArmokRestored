@@ -126,7 +126,7 @@ public class FlowManager : MonoBehaviour
                     if (!GameMap.IsInVisibleArea(particle.pos))
                         continue;
                     var emitParams = new ParticleSystem.EmitParams();
-                    emitParams.position = GameMap.DFtoUnityTileCenter(particle.pos);
+                    emitParams.position = MapCoordinates.DFtoUnityTileCenter(particle.pos);
                     Color color = Color.white;
                     switch (item.Key)
                     {
@@ -191,10 +191,10 @@ public class FlowManager : MonoBehaviour
                 {
                     case FlowType.Dragonfire:
                     case FlowType.Web:
-                        Gizmos.DrawLine(GameMap.DFtoUnityTileCenter(particle.pos), GameMap.DFtoUnityTileCenter(particle.dest));
+                        Gizmos.DrawLine(MapCoordinates.DFtoUnityTileCenter(particle.pos), MapCoordinates.DFtoUnityTileCenter(particle.dest));
                         break;
                     default:
-                        Gizmos.DrawRay(GameMap.DFtoUnityTileCenter(particle.pos), Vector3.up);
+                        Gizmos.DrawRay(MapCoordinates.DFtoUnityTileCenter(particle.pos), Vector3.up);
                         break;
                 }
             }

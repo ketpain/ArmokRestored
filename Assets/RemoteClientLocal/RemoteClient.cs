@@ -231,21 +231,21 @@ namespace DFHack
 
         public static BlockCoord FromDFCoord(DFCoord coord)
         {
-            if (coord.x % GameMap.blockSize != 0 || coord.y % GameMap.blockSize != 0)
+            if (coord.x % MapCoordinates.BlockSize != 0 || coord.y % MapCoordinates.BlockSize != 0)
             {
                 throw new InvalidOperationException("Can't make a block coord from a non-block-corner");
             }
-            return new BlockCoord(coord.x / GameMap.blockSize, coord.y / GameMap.blockSize, coord.z);
+            return new BlockCoord(coord.x / MapCoordinates.BlockSize, coord.y / MapCoordinates.BlockSize, coord.z);
         }
 
         public DFCoord ToDFCoord()
         {
-            return new DFCoord(x * GameMap.blockSize, y * GameMap.blockSize, z);
+            return new DFCoord(x * MapCoordinates.BlockSize, y * MapCoordinates.BlockSize, z);
         }
 
         public override string ToString()
         {
-            return string.Format("BlockCoord({0}[{1}],{2}[{3}],{4})", x, x * GameMap.blockSize, y, y * GameMap.blockSize, z);
+            return string.Format("BlockCoord({0}[{1}],{2}[{3}],{4})", x, x * MapCoordinates.BlockSize, y, y * MapCoordinates.BlockSize, z);
         }
 
         public static bool operator <(BlockCoord a, BlockCoord b)

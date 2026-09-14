@@ -40,9 +40,9 @@ public class CloudMaker : MonoBehaviour
             {
                 int index = CoordToIndex(x, y);
                 vertexPositions[index] = new Vector3(
-                    x * 16 * 48 * GameMap.tileWidth,
+                    x * 16 * 48 * MapCoordinates.TileWidth,
                     0,
-                    -y * 16 * 48 * GameMap.tileWidth) * scale;
+                    -y * 16 * 48 * MapCoordinates.TileWidth) * scale;
                 vertexColors[index] = Color.white;
                 if (cloudArray[x, y])
                     vertexColors[index].a = 1;

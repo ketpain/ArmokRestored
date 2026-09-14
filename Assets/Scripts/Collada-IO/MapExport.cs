@@ -316,7 +316,7 @@ public class MapExport : MonoBehaviour
         tileNode.Items = new object[]
         {
             COLLADA.ConvertMatrix(Matrix4x4.TRS(
-                GameMap.DFtoUnityCoord(pos),
+                MapCoordinates.DFtoUnityCoord(pos),
                 meshContent.GetRotation(tile),
                 Vector3.one))
         };

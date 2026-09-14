@@ -41,17 +41,17 @@ public class CreatureManager : MonoBehaviour
             return false;
         if (z < GameMap.Instance.PosZ - GameSettings.Instance.rendering.drawRangeDown)
             return false;
-        if (x / GameMap.blockSize < (GameMap.Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
+        if (x / MapCoordinates.BlockSize < (GameMap.Instance.PosXBlock - GameSettings.Instance.rendering.drawRangeSide))
             return false;
-        if (x / GameMap.blockSize > (GameMap.Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
+        if (x / MapCoordinates.BlockSize > (GameMap.Instance.PosXBlock + GameSettings.Instance.rendering.drawRangeSide))
             return false;
-        if (y / GameMap.blockSize < (GameMap.Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
+        if (y / MapCoordinates.BlockSize < (GameMap.Instance.PosYBlock - GameSettings.Instance.rendering.drawRangeSide))
             return false;
-        if (y / GameMap.blockSize > (GameMap.Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide))
+        if (y / MapCoordinates.BlockSize > (GameMap.Instance.PosYBlock + GameSettings.Instance.rendering.drawRangeSide))
             return false;
         if (tile != null && tile.Hidden)
             return false;
-        if ((Camera.main.transform.position - GameMap.DFtoUnityCoord(x, y, z)).sqrMagnitude > GameSettings.Instance.rendering.creatureDrawDistance * GameSettings.Instance.rendering.creatureDrawDistance)
+        if ((Camera.main.transform.position - MapCoordinates.DFtoUnityCoord(x, y, z)).sqrMagnitude > GameSettings.Instance.rendering.creatureDrawDistance * GameSettings.Instance.rendering.creatureDrawDistance)
             return false;
         return true;
     }
@@ -173,7 +173,7 @@ public class CreatureManager : MonoBehaviour
         else
         {
             placedUnit.transform.parent = transform;
-            placedUnit.transform.position = GameMap.DFtoUnityCoord(unit.pos_x + unit.subpos_x, unit.pos_y + unit.subpos_y, unit.pos_z + unit.subpos_z) + new Vector3(0, GameMap.floorHeight, 0);
+            placedUnit.transform.position = MapCoordinates.DFtoUnityCoord(unit.pos_x + unit.subpos_x, unit.pos_y + unit.subpos_y, unit.pos_z + unit.subpos_z) + new Vector3(0, MapCoordinates.FloorHeight, 0);
         }
     }
 
@@ -220,12 +220,12 @@ public class CreatureManager : MonoBehaviour
                 }
                 else
                 {
-                    var position = GameMap.DFtoUnityCoord(unit.pos_x + unit.subpos_x, unit.pos_y + unit.subpos_y, unit.pos_z + unit.subpos_z);
+                    var position = MapCoordinates.DFtoUnityCoord(unit.pos_x + unit.subpos_x, unit.pos_y + unit.subpos_y, unit.pos_z + unit.subpos_z);
                     //RaycastHit hitInfo;
                     //if (((flags1 & UnitFlags1.projectile) != UnitFlags1.projectile) && Physics.Raycast(position + new Vector3(0, 2.9f, 0), Vector3.down, out hitInfo, 3, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                     //    creatureList[unit.id].TargetPos = hitInfo.point;
                     //else
-                    creatureList[unit.id].TargetPos = position + new Vector3(0, GameMap.floorHeight, 0);
+                    creatureList[unit.id].TargetPos = position + new Vector3(0, MapCoordinates.FloorHeight, 0);
                 }
                 if (unit.rider_id >= 0 && creatureList.ContainsKey(unit.rider_id))
                 {

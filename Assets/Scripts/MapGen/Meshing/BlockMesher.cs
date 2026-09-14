@@ -73,15 +73,15 @@ abstract class BlockMesher : ISessionWorker {
     static protected void InitBuffers()
     {
         meshBuffer =
-            new MeshCombineUtility.MeshInstance[GameMap.blockSize * GameMap.blockSize * (int)MeshLayer.StaticCutout];
+            new MeshCombineUtility.MeshInstance[MapCoordinates.BlockSize * MapCoordinates.BlockSize * (int)MeshLayer.StaticCutout];
         stencilMeshBuffer =
-            new MeshCombineUtility.MeshInstance[GameMap.blockSize * GameMap.blockSize * ((int)MeshLayer.StaticTransparent - (int)MeshLayer.StaticCutout)];
+            new MeshCombineUtility.MeshInstance[MapCoordinates.BlockSize * MapCoordinates.BlockSize * ((int)MeshLayer.StaticTransparent - (int)MeshLayer.StaticCutout)];
         transparentMeshBuffer =
-            new MeshCombineUtility.MeshInstance[GameMap.blockSize * GameMap.blockSize * ((int)MeshLayer.Collision - (int)MeshLayer.StaticTransparent)];
+            new MeshCombineUtility.MeshInstance[MapCoordinates.BlockSize * MapCoordinates.BlockSize * ((int)MeshLayer.Collision - (int)MeshLayer.StaticTransparent)];
         collisionMeshBuffer =
-            new MeshCombineUtility.MeshInstance[GameMap.blockSize * GameMap.blockSize * ((int)MeshLayer.Count - (int)MeshLayer.Collision)];
+            new MeshCombineUtility.MeshInstance[MapCoordinates.BlockSize * MapCoordinates.BlockSize * ((int)MeshLayer.Count - (int)MeshLayer.Collision)];
         terrainMeshBuffer =
-            new MeshCombineUtility.MeshInstance[GameMap.blockSize * GameMap.blockSize];
+            new MeshCombineUtility.MeshInstance[MapCoordinates.BlockSize * MapCoordinates.BlockSize];
         heights = new float[2, 2];
     }
 
@@ -123,7 +123,7 @@ abstract class BlockMesher : ISessionWorker {
     // Enqueue a block for meshing; inclde 
     public bool Enqueue(DFCoord targetLocation, bool tiles, bool liquids) {
         if (finished) return false;
-        if (!GameMap.IsBlockCorner(targetLocation)) {
+        if (!MapCoordinates.IsBlockCorner(targetLocation)) {
             throw new UnityException("Can't enqueue non-block-corners");
         }
         if (!tiles && !liquids) {
@@ -253,17 +253,17 @@ abstract class BlockMesher : ISessionWorker {
 
     static int coord2Index(int x, int y)
     {
-        return (x * (GameMap.blockSize + 1)) + y;
+        return (x * (MapCoordinates.BlockSize + 1)) + y;
     }
     CPUMesh GenerateLiquidSurface(MapDataStore data, int liquid_select)
     {
-        int block_x = data.SliceOrigin.x / GameMap.blockSize;
-        int block_y = data.SliceOrigin.y / GameMap.blockSize;
+        int block_x = data.SliceOrigin.x / MapCoordinates.BlockSize;
+        int block_y = data.SliceOrigin.y / MapCoordinates.BlockSize;
         int block_z = data.SliceOrigin.z;
 
-        Vector3[] finalVertices = new Vector3[(GameMap.blockSize + 1) * (GameMap.blockSize + 1)];
-        Vector3[] finalNormals = new Vector3[(GameMap.blockSize + 1) * (GameMap.blockSize + 1)];
-        Vector2[] finalUVs = new Vector2[(GameMap.blockSize + 1) * (GameMap.blockSize + 1)];
+        Vector3[] finalVertices = new Vector3[(MapCoordinates.BlockSize + 1) * (MapCoordinates.BlockSize + 1)];
+        Vector3[] finalNormals = new Vector3[(MapCoordinates.BlockSize + 1) * (MapCoordinates.BlockSize + 1)];
+        Vector2[] finalUVs = new Vector2[(MapCoordinates.BlockSize + 1) * (MapCoordinates.BlockSize + 1)];
         List<int> finalFaces = new List<int>();
 
         // Is this necessary?
@@ -272,8 +272,8 @@ abstract class BlockMesher : ISessionWorker {
         heights[1,0] = 0;
         heights[1,1] = 0;
 
-        for (int xx = 0; xx <= GameMap.blockSize; xx++)
-            for (int yy = 0; yy <= GameMap.blockSize; yy++)
+        for (int xx = 0; xx <= MapCoordinates.BlockSize; xx++)
+            for (int yy = 0; yy <= MapCoordinates.BlockSize; yy++)
             {
                 CheckCancellation();
                 //first find the heights of all tiles sharing one corner.
@@ -281,8 +281,8 @@ abstract class BlockMesher : ISessionWorker {
                     for (int yyy = 0; yyy < 2; yyy++)
                     {
                 CheckCancellation();
-                        int x = (block_x * GameMap.blockSize) + xx + xxx - 1;
-                        int y = (block_y * GameMap.blockSize) + yy + yyy - 1;
+                        int x = (block_x * MapCoordinates.BlockSize) + xx + xxx - 1;
+                        int y = (block_y * MapCoordinates.BlockSize) + yy + yyy - 1;
                         if (x < 0 || y < 0 || x >= MapDataStore.MapSize.x || y >= MapDataStore.MapSize.y)
                         {
                             heights[xxx, yyy] = -1;
@@ -304,11 +304,11 @@ abstract class BlockMesher : ISessionWorker {
                         heights[xxx, yyy] /= 7.0f;
                         if (tile.isFloor)
                         {
-                            heights[xxx, yyy] *= (GameMap.tileHeight - GameMap.floorHeight);
-                            heights[xxx, yyy] += GameMap.floorHeight;
+                            heights[xxx, yyy] *= (MapCoordinates.TileHeight - MapCoordinates.FloorHeight);
+                            heights[xxx, yyy] += MapCoordinates.FloorHeight;
                         }
                         else
-                            heights[xxx, yyy] *= GameMap.tileHeight;
+                            heights[xxx, yyy] *= MapCoordinates.TileHeight;
 
                     }
 
@@ -335,21 +335,21 @@ abstract class BlockMesher : ISessionWorker {
                     (heights[1, 0] < 0 ? height : heights[1, 0])) / 2) - ((
                     (heights[0, 1] < 0 ? height : heights[0, 1]) +
                     (heights[1, 1] < 0 ? height : heights[1, 1])) / 2);
-                finalNormals[coord2Index(xx, yy)] = new Vector3(sx, GameMap.tileWidth * 2, -sy);
+                finalNormals[coord2Index(xx, yy)] = new Vector3(sx, MapCoordinates.TileWidth * 2, -sy);
                 finalNormals[coord2Index(xx, yy)].Normalize();
 
-                finalVertices[coord2Index(xx, yy)] = GameMap.DFtoUnityCoord(xx, yy, -GameMap.MapZOffset);
-                finalVertices[coord2Index(xx, yy)].x -= GameMap.tileWidth / 2.0f;
-                finalVertices[coord2Index(xx, yy)].z += GameMap.tileWidth / 2.0f;
+                finalVertices[coord2Index(xx, yy)] = MapCoordinates.DFtoUnityCoord(xx, yy, -MapCoordinates.MapZOffset);
+                finalVertices[coord2Index(xx, yy)].x -= MapCoordinates.TileWidth / 2.0f;
+                finalVertices[coord2Index(xx, yy)].z += MapCoordinates.TileWidth / 2.0f;
                 finalVertices[coord2Index(xx, yy)].y += height;
                 finalUVs[coord2Index(xx, yy)] = new Vector2(xx, yy);
             }
-        for (int xx = 0; xx < GameMap.blockSize; xx++)
-            for (int yy = 0; yy < GameMap.blockSize; yy++)
+        for (int xx = 0; xx < MapCoordinates.BlockSize; xx++)
+            for (int yy = 0; yy < MapCoordinates.BlockSize; yy++)
             {
                 CheckCancellation();
                 if (data.GetLiquidLevel(
-                        new DFCoord((block_x * GameMap.blockSize) + xx, (block_y * GameMap.blockSize) + yy, block_z),
+                        new DFCoord((block_x * MapCoordinates.BlockSize) + xx, (block_y * MapCoordinates.BlockSize) + yy, block_z),
                         liquid_select) == 0) {
                         continue;
                 }
@@ -387,8 +387,8 @@ abstract class BlockMesher : ISessionWorker {
         out CPUMesh terrainTiles,
         out CPUMesh topTerrainTiles)
     {
-        int block_x = data.SliceOrigin.x / GameMap.blockSize;
-        int block_y = data.SliceOrigin.y / GameMap.blockSize;
+        int block_x = data.SliceOrigin.x / MapCoordinates.BlockSize;
+        int block_y = data.SliceOrigin.y / MapCoordinates.BlockSize;
         int block_z = data.SliceOrigin.z;
         int bufferIndex = 0;
         int stencilBufferIndex = 0;
@@ -398,8 +398,8 @@ abstract class BlockMesher : ISessionWorker {
         GameMap.BeginSample("Fill Mesh Buffer");
         for (int i = 0; i < (int)MeshLayer.Count; i++)
         {
-            for (int xx = (block_x * GameMap.blockSize); xx < (block_x + 1) * GameMap.blockSize; xx++)
-                for (int yy = (block_y * GameMap.blockSize); yy < (block_y + 1) * GameMap.blockSize; yy++)
+            for (int xx = (block_x * MapCoordinates.BlockSize); xx < (block_x + 1) * MapCoordinates.BlockSize; xx++)
+                for (int yy = (block_y * MapCoordinates.BlockSize); yy < (block_y + 1) * MapCoordinates.BlockSize; yy++)
                 {
                 CheckCancellation();
                     if (!data.InSliceBounds(new DFCoord(xx, yy, block_z))) throw new UnityException("OOB");
@@ -410,9 +410,9 @@ abstract class BlockMesher : ISessionWorker {
                         FillMeshBuffer(out meshBuffer[bufferIndex],
                             (MeshLayer)i,
                             data[xx, yy, block_z],
-                            GameMap.DFtoUnityCoord(xx - (block_x * GameMap.blockSize),
-                            yy - (block_y * GameMap.blockSize),
-                            -GameMap.MapZOffset));
+                            MapCoordinates.DFtoUnityCoord(xx - (block_x * MapCoordinates.BlockSize),
+                            yy - (block_y * MapCoordinates.BlockSize),
+                            -MapCoordinates.MapZOffset));
                         bufferIndex++;
                     }
                     else if (i < (int)MeshLayer.StaticTransparent)
@@ -420,9 +420,9 @@ abstract class BlockMesher : ISessionWorker {
                         FillMeshBuffer(out stencilMeshBuffer[stencilBufferIndex],
                             (MeshLayer)i,
                             data[xx, yy, block_z],
-                            GameMap.DFtoUnityCoord(xx - (block_x * GameMap.blockSize),
-                            yy - (block_y * GameMap.blockSize),
-                            -GameMap.MapZOffset));
+                            MapCoordinates.DFtoUnityCoord(xx - (block_x * MapCoordinates.BlockSize),
+                            yy - (block_y * MapCoordinates.BlockSize),
+                            -MapCoordinates.MapZOffset));
                         stencilBufferIndex++;
                     }
                     else if (i < (int)MeshLayer.Collision)
@@ -430,9 +430,9 @@ abstract class BlockMesher : ISessionWorker {
                         FillMeshBuffer(out transparentMeshBuffer[transparentBufferIndex],
                             (MeshLayer)i,
                             data[xx, yy, block_z],
-                            GameMap.DFtoUnityCoord(xx - (block_x * GameMap.blockSize),
-                            yy - (block_y * GameMap.blockSize),
-                            -GameMap.MapZOffset));
+                            MapCoordinates.DFtoUnityCoord(xx - (block_x * MapCoordinates.BlockSize),
+                            yy - (block_y * MapCoordinates.BlockSize),
+                            -MapCoordinates.MapZOffset));
                         transparentBufferIndex++;
                     }
                     else if (i < (int)MeshLayer.NaturalTerrain)
@@ -440,9 +440,9 @@ abstract class BlockMesher : ISessionWorker {
                         FillMeshBuffer(out collisionMeshBuffer[collisionIndex],
                             (MeshLayer)i,
                             data[xx, yy, block_z],
-                            GameMap.DFtoUnityCoord(xx - (block_x * GameMap.blockSize),
-                            yy - (block_y * GameMap.blockSize),
-                            -GameMap.MapZOffset));
+                            MapCoordinates.DFtoUnityCoord(xx - (block_x * MapCoordinates.BlockSize),
+                            yy - (block_y * MapCoordinates.BlockSize),
+                            -MapCoordinates.MapZOffset));
                         collisionIndex++;
                     }
                     else if (i == (int)MeshLayer.NaturalTerrain)
@@ -450,9 +450,9 @@ abstract class BlockMesher : ISessionWorker {
                         FillMeshBuffer(out terrainMeshBuffer[terrainIndex],
                             (MeshLayer)i,
                             data[xx, yy, block_z],
-                            GameMap.DFtoUnityCoord(xx - (block_x * GameMap.blockSize),
-                            yy - (block_y * GameMap.blockSize),
-                            -GameMap.MapZOffset));
+                            MapCoordinates.DFtoUnityCoord(xx - (block_x * MapCoordinates.BlockSize),
+                            yy - (block_y * MapCoordinates.BlockSize),
+                            -MapCoordinates.MapZOffset));
                         terrainIndex++;
                     }
                 }

@@ -1241,11 +1241,11 @@ public sealed class DFConnection : MonoBehaviour
 
         if (requestRangeUpdate != null)
         {
-            blockRequest.min_x = requestRangeUpdate.Value.Min.x * GameMap.blockSize / 16;
-            blockRequest.min_y = requestRangeUpdate.Value.Min.y * GameMap.blockSize / 16;
+            blockRequest.min_x = requestRangeUpdate.Value.Min.x * MapCoordinates.BlockSize / 16;
+            blockRequest.min_y = requestRangeUpdate.Value.Min.y * MapCoordinates.BlockSize / 16;
             blockRequest.min_z = requestRangeUpdate.Value.Min.z;
-            blockRequest.max_x = requestRangeUpdate.Value.Max.x * GameMap.blockSize / 16;
-            blockRequest.max_y = requestRangeUpdate.Value.Max.y * GameMap.blockSize / 16;
+            blockRequest.max_x = requestRangeUpdate.Value.Max.x * MapCoordinates.BlockSize / 16;
+            blockRequest.max_y = requestRangeUpdate.Value.Max.y * MapCoordinates.BlockSize / 16;
             blockRequest.max_z = requestRangeUpdate.Value.Max.z;
         }
 

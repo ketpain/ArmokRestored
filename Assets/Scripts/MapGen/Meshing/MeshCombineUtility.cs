@@ -5,8 +5,8 @@ using System;
 public class MeshCombineUtility
 {
     const float edgeThreshold = 0.01f;
-    const float topThreshold = GameMap.tileHeight - edgeThreshold;
-    const float sideThreshold = (GameMap.tileWidth / 2) - edgeThreshold;
+    const float topThreshold = MapCoordinates.TileHeight - edgeThreshold;
+    const float sideThreshold = (MapCoordinates.TileWidth / 2) - edgeThreshold;
 
     [Flags]
     public enum HiddenFaces

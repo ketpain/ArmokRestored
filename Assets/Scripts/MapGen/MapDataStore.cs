@@ -65,7 +65,7 @@ public class MapDataStore {
     public const int WATER_INDEX = 0;
     public const int MAGMA_INDEX = 1;
 
-    public static readonly DFCoord BLOCK_SIZE = new DFCoord(GameMap.blockSize, GameMap.blockSize, 1);
+    public static readonly DFCoord BLOCK_SIZE = new DFCoord(MapCoordinates.BlockSize, MapCoordinates.BlockSize, 1);
 
 
     // Instance stuff
@@ -373,8 +373,8 @@ public class MapDataStore {
 
     public CollisionState CheckCollision(Vector3 pos)
     {
-        var dfPos = GameMap.UnityToDFCoord(pos);
-        var localPos = pos - GameMap.DFtoUnityCoord(dfPos);
+        var dfPos = MapCoordinates.UnityToDFCoord(pos);
+        var localPos = pos - MapCoordinates.DFtoUnityCoord(dfPos);
         var tile = this[dfPos];
         if (tile == null)
             return CollisionState.None;
@@ -437,9 +437,9 @@ public class MapDataStore {
             default:
                 break;
         }
-        if (localPos.y < (tile.waterLevel / 7.0f * GameMap.tileHeight))
+        if (localPos.y < (tile.waterLevel / 7.0f * MapCoordinates.TileHeight))
             state = CollisionState.Water;
-        if (localPos.y < (tile.magmaLevel / 7.0f * GameMap.tileHeight))
+        if (localPos.y < (tile.magmaLevel / 7.0f * MapCoordinates.TileHeight))
             state = CollisionState.Water;
         return state;
     }
@@ -498,7 +498,7 @@ public class MapDataStore {
         DFCoord xHitIncrement, yHitIncrement, zHitIncrement;
         if (ray.direction.x > 0)
         {
-            xWallOffset = GameMap.tileWidth;
+            xWallOffset = MapCoordinates.TileWidth;
             xHitIncrement = new DFCoord(1, 0, 0);
         }
         else
@@ -508,7 +508,7 @@ public class MapDataStore {
         }
         if (ray.direction.z > 0)
         {
-            zWallOffset = GameMap.tileWidth;
+            zWallOffset = MapCoordinates.TileWidth;
             zHitIncrement = new DFCoord(0, -1, 0);
         }
         else
@@ -518,7 +518,7 @@ public class MapDataStore {
         }
         if (ray.direction.y > 0)
         {
-            yWallOffset = GameMap.tileHeight;
+            yWallOffset = MapCoordinates.TileHeight;
             yHitIncrement = new DFCoord(0, 0, 1);
         }
         else
@@ -532,7 +532,7 @@ public class MapDataStore {
         bool haveHitMap = false;
 
         // The coordinate we start at.
-        DFCoord currentCoord = GameMap.UnityToDFCoord(ray.origin);
+        DFCoord currentCoord = MapCoordinates.UnityToDFCoord(ray.origin);
 
         // The coordinate of the last tile wall intersection.
         Vector3 lastHit = ray.origin;
@@ -547,7 +547,7 @@ public class MapDataStore {
             }
 
             // Get the corner of the current tile.
-            Vector3 cornerCoord = GameMap.DFtoUnityBottomCorner(currentCoord);
+            Vector3 cornerCoord = MapCoordinates.DFtoUnityBottomCorner(currentCoord);
 
             // Are we in the selectable area of the map?
             if (!InMapBounds(currentCoord) || GameMap.Instance.PosZ <= currentCoord.z)
@@ -592,18 +592,18 @@ public class MapDataStore {
                             {
                                 // Check if we're in the ramp.
                                 // (that we're in the tile is implied.)
-                                if (Between(cornerCoord.y, lastHit.y, cornerCoord.y + GameMap.floorHeight + (GameMap.tileHeight / 2)))
+                                if (Between(cornerCoord.y, lastHit.y, cornerCoord.y + MapCoordinates.FloorHeight + (MapCoordinates.TileHeight / 2)))
                                 {
                                     tileCoord = currentCoord;
                                     hitInfo.point = lastHit;
                                     return true;
                                 }
                                 // Check if we enter the ramp; same way we check wall intersections.
-                                float floorY = cornerCoord.y + GameMap.floorHeight + (GameMap.tileHeight / 2);
+                                float floorY = cornerCoord.y + MapCoordinates.FloorHeight + (MapCoordinates.TileHeight / 2);
                                 float toFloorMult = (floorY - ray.origin.y) / ray.direction.y;
                                 Vector3 floorIntercept = ray.origin + ray.direction * toFloorMult;
-                                if (Between(cornerCoord.x, floorIntercept.x, cornerCoord.x + GameMap.tileWidth) &&
-                                    Between(cornerCoord.z, floorIntercept.z, cornerCoord.z + GameMap.tileWidth))
+                                if (Between(cornerCoord.x, floorIntercept.x, cornerCoord.x + MapCoordinates.TileWidth) &&
+                                    Between(cornerCoord.z, floorIntercept.z, cornerCoord.z + MapCoordinates.TileWidth))
                                 {
                                     tileCoord = currentCoord;
                                     hitInfo.point = lastHit;
@@ -622,18 +622,18 @@ public class MapDataStore {
                             {
                                 // Check if we're in the floor.
                                 // (that we're in the tile is implied.)
-                                if (Between(cornerCoord.y, lastHit.y, cornerCoord.y + GameMap.floorHeight))
+                                if (Between(cornerCoord.y, lastHit.y, cornerCoord.y + MapCoordinates.FloorHeight))
                                 {
                                     tileCoord = currentCoord;
                                     hitInfo.point = lastHit;
                                     return true;
                                 }
                                 // Check if we enter the floor; same way we check wall intersections.
-                                float floorY = cornerCoord.y + GameMap.floorHeight;
+                                float floorY = cornerCoord.y + MapCoordinates.FloorHeight;
                                 float toFloorMult = (floorY - ray.origin.y) / ray.direction.y;
                                 Vector3 floorIntercept = ray.origin + ray.direction * toFloorMult;
-                                if (Between(cornerCoord.x, floorIntercept.x, cornerCoord.x + GameMap.tileWidth) &&
-                                    Between(cornerCoord.z, floorIntercept.z, cornerCoord.z + GameMap.tileWidth))
+                                if (Between(cornerCoord.x, floorIntercept.x, cornerCoord.x + MapCoordinates.TileWidth) &&
+                                    Between(cornerCoord.z, floorIntercept.z, cornerCoord.z + MapCoordinates.TileWidth))
                                 {
                                     tileCoord = currentCoord;
                                     hitInfo.point = lastHit;
@@ -648,8 +648,8 @@ public class MapDataStore {
             {
                 float xMult = (cornerCoord.x + xWallOffset - ray.origin.x) / ray.direction.x;
                 Vector3 xIntercept = ray.origin + ray.direction * xMult;
-                if (Between(cornerCoord.z, xIntercept.z, cornerCoord.z + GameMap.tileWidth) &&
-                    Between(cornerCoord.y, xIntercept.y, cornerCoord.y + GameMap.tileHeight))
+                if (Between(cornerCoord.z, xIntercept.z, cornerCoord.z + MapCoordinates.TileWidth) &&
+                    Between(cornerCoord.y, xIntercept.y, cornerCoord.y + MapCoordinates.TileHeight))
                 {
                     lastHit = xIntercept;
                     currentCoord += xHitIncrement;
@@ -659,8 +659,8 @@ public class MapDataStore {
             {
                 float zMult = (cornerCoord.z + zWallOffset - ray.origin.z) / ray.direction.z;
                 Vector3 zIntercept = ray.origin + ray.direction * zMult;
-                if (Between(cornerCoord.x, zIntercept.x, cornerCoord.x + GameMap.tileWidth) &&
-                    Between(cornerCoord.y, zIntercept.y, cornerCoord.y + GameMap.tileHeight))
+                if (Between(cornerCoord.x, zIntercept.x, cornerCoord.x + MapCoordinates.TileWidth) &&
+                    Between(cornerCoord.y, zIntercept.y, cornerCoord.y + MapCoordinates.TileHeight))
                 {
                     lastHit = zIntercept;
                     currentCoord += zHitIncrement;
@@ -670,8 +670,8 @@ public class MapDataStore {
             {
                 float yMult = (cornerCoord.y + yWallOffset - ray.origin.y) / ray.direction.y;
                 Vector3 yIntercept = ray.origin + ray.direction * yMult;
-                if (cornerCoord.x <= yIntercept.x && yIntercept.x <= cornerCoord.x + GameMap.tileWidth &&
-                    cornerCoord.z <= yIntercept.z && yIntercept.z <= cornerCoord.z + GameMap.tileWidth)
+                if (cornerCoord.x <= yIntercept.x && yIntercept.x <= cornerCoord.x + MapCoordinates.TileWidth &&
+                    cornerCoord.z <= yIntercept.z && yIntercept.z <= cornerCoord.z + MapCoordinates.TileWidth)
                 {
                     lastHit = yIntercept;
                     currentCoord += yHitIncrement;
@@ -699,12 +699,12 @@ public class MapDataStore {
     {
         if (Main == null)
             return false; //there's no cube to hit.
-        Vector3 lowerLimits = GameMap.DFtoUnityBottomCorner(new DFCoord(0, 0, 0));
-        Vector3 upperLimits = GameMap.DFtoUnityBottomCorner(new DFCoord(
+        Vector3 lowerLimits = MapCoordinates.DFtoUnityBottomCorner(new DFCoord(0, 0, 0));
+        Vector3 upperLimits = MapCoordinates.DFtoUnityBottomCorner(new DFCoord(
             MapSize.x - 1,
             MapSize.y - 1,
             MapSize.z - 1
-            )) + new Vector3(GameMap.tileWidth, GameMap.tileHeight, GameMap.tileWidth);
+            )) + new Vector3(MapCoordinates.TileWidth, MapCoordinates.TileHeight, MapCoordinates.TileWidth);
 
         // Multipliers to scale the ray to hit the different walls of the cube
         float tx1 = (lowerLimits.x - ray.origin.x) / ray.direction.x;

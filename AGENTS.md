@@ -292,8 +292,10 @@ See `Docs/SessionLifecycle.md` for detailed ordering and failure behavior.
 * `Assets/Scripts/MapGen/MapDataStore.cs` holds tile/block data, coordinate and
   neighborhood queries, and map raycasting. `GameMap.cs` consumes updates,
   schedules dirty blocks, manages the visible region, and applies mesh results.
-  It still contains coordinate, presentation, and export responsibilities awaiting
-  later extraction. A DF map block is 16 by 16 by 1 tiles.
+  Shared coordinates and tile/block constants live in
+  `Assets/Armok/Runtime/World/MapCoordinates.cs` in `Assembly-CSharp`. GameMap
+  updates its synchronized vertical offset from DF's embark position. A DF map
+  block is 16 by 16 by 1 tiles.
 * `Assets/Scripts/MapGen/Meshing/BlockMesher.cs` generates CPU mesh data using the
   current content. It supports zero, one, or multiple worker threads and
   cooperative cancellation. `Meshing/MeshData.cs` defines `CPUMesh`;
