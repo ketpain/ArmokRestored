@@ -54,7 +54,7 @@ public class CameraRotateVertical : MonoBehaviour
 
     public void HandleMouseRotation()
     {
-        if (ArmokInput.Action("Orbit").IsPressed() && EventSystem.current.currentSelectedGameObject == null)
+        if (ArmokInput.Action("Orbit").IsPressed() && !MapInputUI.HasKeyboardFocus && !MapInputUI.PointerOverUI)
         {
             //horizontal rotation
             if (verticalRotationEnabled && ArmokInput.PointerPosition.y != mouseY)

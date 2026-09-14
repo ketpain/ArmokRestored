@@ -33,6 +33,8 @@ namespace Armok.Tests.Editor
 
         private static void Run(TestMode mode, string assembly, string label)
         {
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+                throw new InvalidOperationException("Wait for asset imports and script compilation before starting validation.");
             if (EditorUtility.scriptCompilationFailed)
                 throw new InvalidOperationException("Fix script compilation errors before starting a validation run.");
             if (EditorApplication.isPlayingOrWillChangePlaymode || SessionState.GetBool(RunActive, false) ||

@@ -100,10 +100,10 @@ namespace DFHack
             var socket = PClient.Socket;
             if (socket == null)
             {
-                outString.PrintErr("In call to %s::%s: invalid socket.\n",
-                    Proto, Name);
                 output = default(TOutput);
-                throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
+                // Interrupt can close the transport between RPCs. Let the session
+                // owner report the failure once, or recognize deliberate shutdown.
+                throw new IOException("DF RPC connection is closed: " + Proto + "::" + Name);
             }
 
             using var sendStream = new MemoryStream();

@@ -95,7 +95,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         private void FixedUpdate()
         {
-            if (EventSystem.current.currentSelectedGameObject != null)
+            if (MapInputUI.HasKeyboardFocus)
                 return;
             float speed;
             GetInput(out speed);

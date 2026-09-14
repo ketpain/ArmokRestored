@@ -51,7 +51,7 @@ public class CameraMovement : MonoBehaviour
                 transform.Translate(diff * interp, Space.World);
             }
         }
-        if (GameSettings.Instance.game.showDFScreen || EventSystem.current.currentSelectedGameObject != null || DFConnection.Instance.WorldMode == dfproto.GetWorldInfoOut.Mode.MODE_ADVENTURE)
+        if (GameSettings.Instance.game.showDFScreen || MapInputUI.HasKeyboardFocus || DFConnection.Instance.WorldMode == dfproto.GetWorldInfoOut.Mode.MODE_ADVENTURE)
             return;
 
         float moveZ = ArmokInput.Elevation;

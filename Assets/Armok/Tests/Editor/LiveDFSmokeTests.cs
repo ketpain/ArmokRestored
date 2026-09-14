@@ -119,6 +119,7 @@ namespace Armok.LiveTests
                 deadline = EditorApplication.timeSinceStartup + 30;
                 while (!HasMapGeometry() && session.IsReady && EditorApplication.timeSinceStartup < deadline) yield return null;
                 Assert.That(HasMapGeometry(), Is.True, "The session reached Ready but produced no active map geometry.");
+                yield return CheckInspection(iteration);
                 CaptureWorkers();
                 string sprites = SpriteHashes();
                 Assert.That(sprites, Is.Not.Empty, "The live fixture did not produce creature pages.");
@@ -180,6 +181,83 @@ namespace Armok.LiveTests
             Assert.That(newSession.ContentCallbackCount, Is.Zero);
             Assert.That(oldSession.Stage, Is.EqualTo(SessionStage.Disconnected), "Old owner interfered with retry.");
             yield return new ExitPlayMode();
+        }
+
+        private IEnumerator CheckInspection(int iteration)
+        {
+            var inspectorType = LegacyType("CursorInspection");
+            var inspector = Object.FindObjectsByType(inspectorType, FindObjectsInactive.Exclude, FindObjectsSortMode.None).Single() as Component;
+            var camera = inspector.GetComponent<Camera>();
+            var inspect = inspectorType.GetMethod("InspectPointer");
+            var selection = inspectorType.GetProperty("Selection");
+            var pinned = inspectorType.GetProperty("IsPinned");
+            var debug = Field(Singleton("GameSettings"), "debug");
+            var debugFlag = debug.GetType().GetField("drawDebugInfo");
+            bool wasDebug = (bool)debugFlag.GetValue(debug);
+            try
+            {
+                debugFlag.SetValue(debug, false);
+                var rect = camera.pixelRect;
+                Vector2 point = default;
+                // Find a visible map hit without depending on this particular fortress layout.
+                double deadline = EditorApplication.timeSinceStartup + 30;
+                while (selection.GetValue(inspector) == null && EditorApplication.timeSinceStartup < deadline)
+                {
+                    for (int y = 1; y < 10 && selection.GetValue(inspector) == null; y++)
+                        for (int x = 1; x < 10 && selection.GetValue(inspector) == null; x++)
+                        {
+                            point = new Vector2(rect.x + rect.width * x / 10, rect.y + rect.height * y / 10);
+                            inspect.Invoke(inspector, new object[] { point, false, false });
+                        }
+                    if (selection.GetValue(inspector) == null) yield return null;
+                }
+                var selected = selection.GetValue(inspector);
+                Assert.That(selected, Is.Not.Null, $"Hovering the rendered fortress did not select a tile. Camera={camera.transform.position}, rect={rect}, mapZ={LegacyType("GameMap").GetProperty("PosZ").GetValue(Singleton("GameMap"))}");
+                inspect.Invoke(inspector, new object[] { point, true, false });
+                Assert.That(pinned.GetValue(inspector), Is.EqualTo(true));
+                inspect.Invoke(inspector, new object[] { new Vector2(-100, -100), false, false });
+                Assert.That(selection.GetValue(inspector), Is.EqualTo(selected), "Pinned tile followed the pointer.");
+                inspect.Invoke(inspector, new object[] { point, true, true });
+                Assert.That(pinned.GetValue(inspector), Is.EqualTo(true), "A UI click released the pinned tile.");
+                yield return null;
+                yield return null;
+                var card = (RectTransform)Field(inspector, "card");
+                Assert.That(card.gameObject.activeInHierarchy, Is.True);
+                var labels = card.GetComponentsInChildren<UnityEngine.UI.Text>();
+                Assert.That(labels.Any(label => label.text.Contains("X ") && label.text.Contains("Z ")), Is.True);
+                Assert.That(labels.Any(label => label.name == "Details" && !string.IsNullOrEmpty(label.text)), Is.True);
+                Assert.That(card.GetComponent<CanvasGroup>().blocksRaycasts, Is.False);
+                Assert.That(card.GetComponentsInChildren<UnityEngine.UI.Graphic>().All(graphic => !graphic.raycastTarget), Is.True);
+                var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+                var previous = eventSystem.currentSelectedGameObject;
+                var button = new GameObject("Inspection focus test", typeof(RectTransform), typeof(UnityEngine.UI.Button));
+                try
+                {
+                    eventSystem.SetSelectedGameObject(button);
+                    Assert.That(LegacyType("MapInputUI").GetProperty("HasKeyboardFocus").GetValue(null), Is.EqualTo(false),
+                        "A selected button must not lock out camera movement.");
+                }
+                finally
+                {
+                    eventSystem.SetSelectedGameObject(previous);
+                    Object.DestroyImmediate(button);
+                }
+                foreach (string path in new[] { "Canvas/Dwarf UI", "Canvas/Adventure UI", "Canvas/Clock Panel", "Canvas/Properties", "DwarfModeMenu", "AdventureManager" })
+                    Assert.That(GameObject.Find(path), Is.Null, "Retired UI reactivated: " + path);
+                if (iteration == 1)
+                {
+                    ScreenCapture.CaptureScreenshot("TestResults/inspection.png");
+                    yield return null;
+                    yield return null;
+                }
+                inspect.Invoke(inspector, new object[] { new Vector2(-100, -100), true, false });
+                Assert.That(pinned.GetValue(inspector), Is.EqualTo(false));
+                Assert.That(selection.GetValue(inspector), Is.Null, "Clicking empty space retained stale tile data.");
+                inspect.Invoke(inspector, new object[] { point, false, true });
+                Assert.That(selection.GetValue(inspector), Is.Null, "Hovering UI selected the map underneath it.");
+                messages.Add($"Session {iteration}: hover, pin/release, passive inspection HUD and retired panels verified with debug disabled.");
+            }
+            finally { debugFlag.SetValue(debug, wasDebug); }
         }
 
         private void ConfigureWorkers(bool backgroundPolling, int meshThreads)

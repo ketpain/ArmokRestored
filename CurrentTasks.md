@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13
 
-Status: Phases 0-2 complete and verified. Phase 3 (focused responsibility extraction) is next; Phases 3-6 remain pending.
+Status: Phases 0-2 complete and verified. Phase 3 is underway, starting with cursor inspection and retiring the legacy command UI. Phases 4-6 remain pending.
 
 ## Objective
 
@@ -116,7 +116,7 @@ Completed 2026-09-13:
 Priority: After the first milestone. Dependencies: Phase 2.
 
 - [ ] Extract screenshots and mesh/data export from `GameMap`. Preserve file formats, naming behavior, and existing UI/shortcut entry points; release temporary screenshot textures after use.
-- [ ] Extract cursor inspection and its UI formatting from map chunk management.
+- [x] Extract cursor inspection and its UI formatting from map chunk management.
 - [ ] Move map shortcuts/UI commands into a focused input/controller component using the existing action asset. Keep a clear handoff for commands that affect map rendering or DF.
 - [ ] Separate coordinate conversion and shared world constants from `GameMap` where they can become independent helpers. Add representative round-trip/boundary tests.
 - [ ] Reduce `GameMap` to map presentation, visibility, and coordination with its renderer/mesher, extracting those further only where ownership becomes clearer.
@@ -127,8 +127,19 @@ Acceptance:
 
 - Input/UI or export changes can be understood without following the map meshing loop.
 - Content consumers have a defined ready contract instead of inferring readiness from whichever singleton happens to exist.
-- Representative exports, cursor inspection, camera/map controls, and rendering retain their existing behavior.
+- Representative exports, camera navigation, and rendering retain their existing behavior. Cursor inspection remains available through a replacement HUD; the original command panels are retired at the user's request.
 - There are no missing scripts, broken UnityEvent bindings, or lost prefab overrides caused by extraction.
+
+Cursor/HUD slice (2026-09-13):
+
+- User direction: retire the original command UI and retain cursor inspection. This replaces the earlier requirement to preserve those command panels. Camera navigation, settings, connection dialogs, and loading progress remain available.
+- Moved inspection out of `GameMap` into `Assets/Armok/Runtime/UI/CursorInspection.cs` and `TileInspection.cs`. Hover shows a compact description; clicking pins/releases a tile. The passive HUD does not block pointer input, and inspection no longer requires the debug-info option.
+- Disabled the dwarf/adventure command panels and their command components, clock, old cursor text, log panel/toggle, and Discord link in Map Mode. Disabled `UiSwitcher` so it cannot reactivate the retired panels. Serialized references are retained for later cleanup.
+- `MapSelection` retains camera panning. `MapInputUI` prevents a previously selected button from blocking camera navigation; active text editing still receives keyboard input. Unassigned minimap references are guarded.
+- Expanded the existing three-session live regression to exercise inspection, pin/release, UI blocking, button focus, and inactive legacy panels with debug info disabled. It waits for selectable terrain after the first generated mesh appears. Controls and ownership are documented in `Docs/MapInspection.md`.
+- The disconnect regression exposed duplicate error logging when interruption occurs between RPCs. A closed connection still throws, and its session owner handles reporting or deliberate shutdown. The vendor change is recorded in `Docs/ThirdParty.md`.
+- Validation: both live tests passed, including inspection across three Play sessions, unchanged sprite mip hashes, interrupted loading/retry, and polling disconnect/shutdown. All 23 lifecycle tests and four modern-input tests passed. The game-view capture is `TestResults/inspection.png`; XML results and stages are under `TestResults/`. The 21 texture/cache tests were not rerun for this UI slice.
+- Other Phase 3 extractions remain pending. The user's successful game-mode check does not yet establish a recorded standalone-player build validation.
 
 ## Phase 4 — Separate editor preparation and runtime loading
 

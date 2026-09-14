@@ -12,6 +12,8 @@
 
 Local Phase 2 changes: `DFHack/RemoteClient.cs` now bounds connection/I/O waits, bypasses reverse DNS for numeric addresses, disposes failed connection attempts, and supports socket interruption without writing into an active RPC. Disconnect is idempotent and the finalizer only closes the transport. `DFHack/RemoteFunctionBase.cs` retains a socket reference per call, sends complete frames, disposes its serialization stream, and reports transport failures as exceptions so the session stops instead of consuming missing results. Optional unavailable RPCs still return their protocol result. Existing file-level license notices and Unity GUIDs are retained; altered files are marked in source. See `Docs/SessionLifecycle.md` and the controlled-peer tests before updating this dependency.
 
+Follow-up during cursor/HUD validation: an RPC started after socket interruption now throws its closed-connection exception without also writing an error through the output stream. This lets the session owner report the failure once or recognize deliberate shutdown; the exception is still propagated.
+
 The revision was obtained from the reference Armok Vision checkout at `3027c785a54d7a8d9a7a9f7f2a10a1815c3bb500`, which pins this dependency. The sibling checkout is not needed to build ArmokRestored.
 
 ## Protocol generation

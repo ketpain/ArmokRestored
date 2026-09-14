@@ -25,8 +25,7 @@ public class CameraScale : MonoBehaviour
     {
         //horizontal rotation
         if (ArmokInput.Scroll != 0
-            //&& EventSystem.current.currentSelectedGameObject == null 
-            && !EventSystem.current.IsPointerOverGameObject())
+            && !MapInputUI.PointerOverUI)
         {
             zoomLevel -= ArmokInput.Scroll * zoomSpeed;
             if (zoomLevel > maxZoom)

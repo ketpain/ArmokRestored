@@ -6,9 +6,7 @@ using RemoteFortressReader;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
-using UnitFlags;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -295,7 +293,7 @@ public class GameMap : MonoBehaviour
     void Update()
     {
         if (!SessionRuntime.Ready) return;
-        if (ArmokInput.Action("ToggleDF").WasPressedThisFrame() && EventSystem.current.currentSelectedGameObject == null)
+        if (ArmokInput.Action("ToggleDF").WasPressedThisFrame() && !MapInputUI.HasKeyboardFocus)
         {
             GameSettings.Instance.game.showDFScreen = !GameSettings.Instance.game.showDFScreen;
 
@@ -305,12 +303,8 @@ public class GameMap : MonoBehaviour
         UpdateView();
 
 
-        if (!GameSettings.Instance.game.showDFScreen && EventSystem.current.currentSelectedGameObject == null && DFConnection.Instance.WorldMode != dfproto.GetWorldInfoOut.Mode.MODE_ADVENTURE)
+        if (!GameSettings.Instance.game.showDFScreen && !MapInputUI.HasKeyboardFocus && DFConnection.Instance.WorldMode != dfproto.GetWorldInfoOut.Mode.MODE_ADVENTURE)
         {
-            if (ArmokInput.Action("Help").WasPressedThisFrame())
-            {
-                ToggleHelp();
-            }
             if (ArmokInput.Action("ScaleUnits").WasPressedThisFrame())
             {
                 switch (GameSettings.Instance.units.scaleUnits)
@@ -369,9 +363,9 @@ public class GameMap : MonoBehaviour
             }
             if (ArmokInput.Action("Cancel").WasPressedThisFrame())
             {
-                optionsPanel.Slide();
+                if (optionsPanel != null) optionsPanel.Slide();
             }
-            if (ArmokInput.Action("ToggleMap").WasPressedThisFrame())
+            if (ArmokInput.Action("ToggleMap").WasPressedThisFrame() && mapWindow != null && mapCamera != null)
             {
                 mapWindow.SetActive(!mapWindow.activeSelf);
                 mapCamera.SetActive(!mapCamera.activeSelf);
@@ -385,7 +379,6 @@ public class GameMap : MonoBehaviour
         if (ContentLoader.Instance == null)
             return;
 
-        ShowCursorInfo();
         UpdateRequestRegion();
         UpdateBlocks();
         //DrawBlocks();
@@ -1276,206 +1269,6 @@ public class GameMap : MonoBehaviour
         CreatureManager.Instance.Clear();
         if (MapDataStore.Main != null)
             MapDataStore.Main.Reset();
-    }
-
-    void ShowCursorInfo()
-    {
-        if (MapDataStore.Main == null)
-            return; //No 
-        UnityEngine.Profiling.Profiler.BeginSample("ShowCursorInfo", this);
-
-        StringBuilder statusText = new StringBuilder();
-
-        if (cursX >= 0 && cursY >= 0 && cursZ >= 0 && GameSettings.Instance.debug.drawDebugInfo)
-        {
-            statusText.Append("Cursor: ");
-            statusText.Append(cursX).Append(",");
-            statusText.Append(cursY).Append(",");
-            statusText.Append(cursZ).AppendLine();
-            var tile = MapDataStore.Main[cursX, cursY, cursZ];
-            if (tile != null)
-            {
-                statusText.Append("Tiletype:\n");
-                var tiletype = DFConnection.Instance.NetTiletypeList.tiletype_list
-                    [tile.tileType];
-                statusText.Append(tiletype.name).AppendLine();
-                statusText.Append(
-                    tiletype.shape).Append(":").Append(
-                    tiletype.special).Append(":").Append(
-                    tiletype.material).Append(":").Append(
-                    tiletype.variant).Append(":").Append(
-                    tiletype.direction).AppendLine();
-
-                statusText.Append("Tree: ").Append(tile.positionOnTree).Append(" (").Append(tile.trunkPercent).Append("%)").AppendLine();
-
-                statusText.Append("Desingation: ").Append(tile.digDesignation).AppendLine();
-
-                if (tile.Hidden)
-                    statusText.Append("Hidden").AppendLine();
-
-                statusText.Append(tile.WallBuildingSides).AppendLine();
-
-                var mat = tile.material;
-                statusText.Append("Material: ");
-                statusText.Append(mat);
-
-                if (MaterialRaws.Instance.ContainsKey(mat))
-                {
-                    statusText.Append(", ");
-                    statusText.Append(MaterialRaws.Instance[mat].id).AppendLine();
-                }
-                else
-                    statusText.AppendLine();
-
-                var basemat = tile.base_material;
-                statusText.Append("Base Material: ");
-                statusText.Append(basemat);
-
-                if (MaterialRaws.Instance.ContainsKey(basemat))
-                {
-                    statusText.Append(", ");
-                    statusText.Append(MaterialRaws.Instance[basemat].id).AppendLine();
-                }
-                else
-                    statusText.Append("Unknown Base Material\n");
-
-                var layermat = tile.layer_material;
-                statusText.Append("Layer Material: ");
-                statusText.Append(layermat);
-
-                if (MaterialRaws.Instance.ContainsKey(layermat))
-                {
-                    statusText.Append(", ");
-                    statusText.Append(MaterialRaws.Instance[layermat].id).AppendLine();
-                }
-                else
-                    statusText.Append("Unknown Layer Material\n");
-
-                var veinmat = tile.vein_material;
-                statusText.Append("Vein Material: ");
-                statusText.Append(veinmat);
-
-                if (MaterialRaws.Instance.ContainsKey(veinmat))
-                {
-                    statusText.Append(", ");
-                    statusText.Append(MaterialRaws.Instance[veinmat].id).AppendLine();
-                }
-                else
-                    statusText.Append("Unknown Vein Material\n");
-
-                var cons = tile.construction_item;
-                statusText.Append("Construction Item: ");
-                statusText.Append(cons);
-
-                if (ItemRaws.Instance.ContainsKey(cons))
-                {
-                    statusText.Append(", ");
-                    statusText.Append(ItemRaws.Instance[cons].id).AppendLine();
-                }
-                else
-                    statusText.Append("Unknown Construction Item\n");
-
-                statusText.AppendLine();
-
-                statusText.Append(Building.BuildingManager.Instance.GetBuildingInfoText(new DFCoord(cursX, cursY, cursZ)));
-
-                if (tile.spatters != null)
-                    foreach (var spatter in tile.spatters)
-                    {
-                        string matString = ((MatPairStruct)spatter.material).ToString();
-                        if (MaterialRaws.Instance.ContainsKey(spatter.material))
-                            matString = MaterialRaws.Instance[spatter.material].id;
-                        if (spatter.item != null)
-                        {
-                            string item = ((MatPairStruct)spatter.item).ToString();
-                            if (spatter.item.mat_type == 55)//Plant Growth
-                            {
-                                item = DFConnection.Instance.NetPlantRawList.plant_raws[spatter.material.mat_index].growths[spatter.item.mat_index].id;
-                            }
-                            else if (ItemRaws.Instance.ContainsKey(spatter.item))
-                                item = ItemRaws.Instance[spatter.item].id;
-                            else if (ItemRaws.Instance.ContainsKey(new MatPairStruct(spatter.item.mat_type, -1)))
-                                item = ItemRaws.Instance[new MatPairStruct(spatter.item.mat_type, -1)].id;
-                            statusText.AppendFormat("{0} {1}: {2}", matString, item, spatter.amount).AppendLine();
-                        }
-                        else
-                            statusText.AppendFormat("{0} {1}: {2}", matString, spatter.state, spatter.amount).AppendLine();
-                    }
-            }
-
-            if (CreatureManager.Instance.Units != null)
-            {
-                UnitDefinition foundUnit = null;
-                foreach (UnitDefinition unit in CreatureManager.Instance.Units)
-                {
-                    UnitFlags1 flags1 = (UnitFlags1)unit.flags1;
-
-                    if (!CreatureManager.IsValidCreature(unit))
-                        continue;
-                    if (unit.pos_x == cursX && unit.pos_y == cursY && unit.pos_z == cursZ)
-                    {
-                        foundUnit = unit;
-                        if ((flags1 & UnitFlags1.on_ground) == UnitFlags1.on_ground)
-                            continue; // Keep looking until we find a standing unit.
-                        else
-                            break;
-                    }
-                }
-                if (foundUnit != null)
-                {
-                    UnitFlags1 flags1 = (UnitFlags1)foundUnit.flags1;
-                    UnitFlags2 flags2 = (UnitFlags2)foundUnit.flags2;
-
-                    CreatureRaw creatureRaw = null;
-                    if (CreatureRaws.Instance != null)
-                        creatureRaw = CreatureRaws.Instance[foundUnit.race.mat_type];
-
-                    if (creatureRaw != null)
-                    {
-                        statusText.Append("Unit:   \n");
-
-                        statusText.Append("Race: ");
-                        statusText.Append(creatureRaw.creature_id + ":");
-                        statusText.Append(creatureRaw.caste[foundUnit.race.mat_index].caste_id);
-                        statusText.AppendLine();
-
-                        statusText.Append(flags1).AppendLine();
-                        statusText.Append(flags2).AppendLine();
-                        //statusText.Append(flags3).AppendLine();
-                        statusText.Append("Length: ").Append(foundUnit.size_info.length_cur).Append("/").Append(Mathf.FloorToInt(Mathf.Pow(creatureRaw.adultsize * 10000, 1.0f / 3.0f))).AppendLine();
-                        statusText.Append("Profession: ").Append((profession)foundUnit.profession_id).AppendLine();
-                        foreach (var noble in foundUnit.noble_positions)
-                        {
-                            statusText.Append(noble).Append(", ");
-                        }
-                        statusText.AppendLine();
-                    }
-                }
-            }
-
-
-            //if (itemPositions.ContainsKey(new DFCoord(cursX, cursY, cursZ)))
-            //{
-            //    for (int itemIndex = 0; itemIndex < itemPositions[new DFCoord(cursX, cursY, cursZ)].Count && itemIndex < 5; itemIndex++)
-            //    {
-            //        var item = itemPositions[new DFCoord(cursX, cursY, cursZ)][itemIndex];
-            //        statusText.Append("Item ").Append(item.id).Append(": ");
-            //        if (materials.ContainsKey(item.material))
-            //            statusText.Append(materials[item.material].id);
-            //        else
-            //            statusText.Append(((MatPairStruct)item.material).ToString());
-            //        statusText.Append(" ");
-            //        if (items.ContainsKey(item.type))
-            //            statusText.Append(items[item.type].id);
-            //        statusText.Append("(").Append(((MatPairStruct)item.type)).Append(")");
-            //        statusText.AppendLine();
-            //    }
-            //    if (itemPositions[new DFCoord(cursX, cursY, cursZ)].Count > 4)
-            //        statusText.Append(itemPositions[new DFCoord(cursX, cursY, cursZ)].Count - 4).Append(" items more.");
-            //}
-        }
-        cursorProperties.text = statusText.ToString();
-        UnityEngine.Profiling.Profiler.EndSample();
     }
 
     private int screenshotCount;

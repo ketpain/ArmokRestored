@@ -77,7 +77,7 @@ public class CameraSelector : MonoBehaviour
 
     public void Update()
     {
-        if (ArmokInput.Action("SwitchCamera").WasPressedThisFrame() && EventSystem.current.currentSelectedGameObject == null)
+        if (ArmokInput.Action("SwitchCamera").WasPressedThisFrame() && !MapInputUI.HasKeyboardFocus)
             CycleCamera();
     }
 

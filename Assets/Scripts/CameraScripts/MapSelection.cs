@@ -2,7 +2,7 @@ using UnityEngine;
 using DFHack;
 using UnityEngine.EventSystems;
 
-// Pretty tightly coupled to GameMap, ehhh.
+// Retained on existing camera rigs for ground-plane panning. CursorInspection owns selection.
 public class MapSelection : MonoBehaviour
 {
     public CameraMovement cameraOrigin;
@@ -19,46 +19,37 @@ public class MapSelection : MonoBehaviour
     //Handle mouse dragging here.
     void Update()
     {
-        if (!DFConnection.Connected || GameMap.Instance == null || !GameMap.Instance.enabled) return;
+        if (!SessionRuntime.Ready || GameMap.Instance == null || !GameMap.Instance.enabled || GameSettings.Instance.game.showDFScreen)
+        {
+            panning = false;
+            return;
+        }
 
         //mouseWorldPosition = GetMouseWorldPosition(ArmokInput.PointerPosition);
 
         if(DFConnection.Instance.WorldMode != dfproto.GetWorldInfoOut.Mode.MODE_ADVENTURE)
             UpdateCameraPan();
 
-        if (ArmokInput.Action("Select").IsPressed() && !EventSystem.current.IsPointerOverGameObject())
-        {
-            Ray mouseRay = GetComponent<Camera>().ScreenPointToRay(ArmokInput.PointerPosition);
-
-            DFCoord currentTarget;
-            RaycastHit currentTargetCoords;
-            if (DFConnection.Connected && GameMap.Instance.enabled && MapDataStore.Raycast(mouseRay, out currentTarget, out currentTargetCoords))
-            {
-                GameMap.Instance.cursX = currentTarget.x;
-                GameMap.Instance.cursY = currentTarget.y;
-                GameMap.Instance.cursZ = currentTarget.z;
-            }
-            else
-            {
-                GameMap.Instance.cursX = -30000;
-                GameMap.Instance.cursY = -30000;
-                GameMap.Instance.cursZ = -30000;
-            }
-        }
     }
+
+    private bool panning;
+
+    private void OnDisable() { panning = false; }
 
     private void UpdateCameraPan()
     {
-        if (ArmokInput.Action("Pan").WasPressedThisFrame())
+        if (ArmokInput.Action("Pan").WasPressedThisFrame() && !MapInputUI.PointerOverUI)
         {
 
+            panning = true;
             //Initialize mouse drag pan
 
             mouseWorldPositionPrevious = GetMouseWorldPosition(ArmokInput.PointerPosition);
             mouseWorldPlaneHeight = mouseWorldPositionPrevious.y;
 
         }
-        if (ArmokInput.Action("Pan").IsPressed())
+        if (!ArmokInput.Action("Pan").IsPressed()) panning = false;
+        if (panning)
         {
 
             //Mouse drag pan
