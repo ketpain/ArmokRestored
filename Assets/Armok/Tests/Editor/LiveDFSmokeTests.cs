@@ -97,6 +97,7 @@ namespace Armok.LiveTests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/Map Mode.unity", OpenSceneMode.Single);
             string firstSprites = null;
+            object previousCatalog = null;
             int firstCallbackCount = -1;
             for (int iteration = 1; iteration <= 3; iteration++)
             {
@@ -105,7 +106,12 @@ namespace Armok.LiveTests
                 double deadline = EditorApplication.timeSinceStartup + 180;
                 while (completedLoads < iteration && EditorApplication.timeSinceStartup < deadline) yield return null;
                 Assert.That(completedLoads, Is.EqualTo(iteration), "Each Play session must finish exactly one content load.");
-                Assert.That(Singleton("ContentLoader") as Object, Is.Not.Null);
+                var catalog = LegacyType("ContentCatalog").GetProperty("Current").GetValue(null);
+                Assert.That(catalog, Is.Not.Null);
+                Assert.That(catalog, Is.Not.SameAs(previousCatalog), "A new session must publish its own content.");
+                previousCatalog = catalog;
+                var loader = Object.FindFirstObjectByType(LegacyType("ContentLoader"));
+                Assert.That(loader.GetType().GetProperty("Catalog").GetValue(loader), Is.SameAs(catalog));
                 Assert.That((bool)LegacyType("DFConnection").GetProperty("Connected").GetValue(null), Is.True);
 
                 var session = (SessionCoordinator)LegacyType("SessionRuntime").GetProperty("Current").GetValue(null);
@@ -142,6 +148,7 @@ namespace Armok.LiveTests
                 Assert.That((bool)LegacyType("DFConnection").GetProperty("Connected").GetValue(null), Is.False);
                 Assert.That(session.Stage, Is.EqualTo(SessionStage.Disconnected));
                 Assert.That(session.ContentCallbackCount, Is.Zero);
+                Assert.That(LegacyType("ContentCatalog").GetProperty("Current").GetValue(null), Is.Null, "Stopped content must be unpublished.");
                 messages.Add($"Session {iteration}: callbacks={callbackCount}; all captured workers stopped.");
                 workers.Clear();
             }
@@ -154,9 +161,10 @@ namespace Armok.LiveTests
             yield return new EnterPlayMode(false);
             var oldSession = (SessionCoordinator)LegacyType("SessionRuntime").GetProperty("Current").GetValue(null);
             Assert.That(oldSession.Stage, Is.EqualTo(SessionStage.LoadingContent));
-            Assert.That(Singleton("ContentLoader") as Object, Is.Null);
+            Assert.That(LegacyType("ContentCatalog").GetProperty("Current").GetValue(null), Is.Null);
             LegacyType("SessionRuntime").GetMethod("Stop").Invoke(null, new object[] { oldSession, null });
             Assert.That(oldSession.Stage, Is.EqualTo(SessionStage.Disconnected));
+            Assert.That(LegacyType("ContentCatalog").GetProperty("Current").GetValue(null), Is.Null);
             Assert.That(oldSession.ContentCallbackCount, Is.Zero);
             Assert.That((ISessionWorker[])LegacyType("SessionRuntime").GetProperty("Workers").GetValue(null), Is.Empty);
 
@@ -299,6 +307,7 @@ namespace Armok.LiveTests
             if (polling != null) workers.Add(polling.Thread);
             object mesher = Field(Singleton("GameMap"), "mesher");
             Assert.That(mesher, Is.Not.Null);
+            Assert.That(Field(mesher, "content"), Is.SameAs(LegacyType("ContentCatalog").GetProperty("Current").GetValue(null)), "Workers must retain the loaded catalog, not the scene loader.");
             int expectedThreads = (int)Field(Field(Singleton("GameSettings"), "meshing"), "meshingThreads");
             var meshWorkers = Field(mesher, "threads") as Thread[];
             Assert.That(meshWorkers?.Length ?? 0, Is.EqualTo(expectedThreads));
@@ -307,7 +316,7 @@ namespace Armok.LiveTests
 
         private static string SpriteHashes()
         {
-            object loader = Singleton("ContentLoader");
+            object loader = LegacyType("ContentCatalog").GetProperty("Current").GetValue(null);
             object manager = loader.GetType().GetProperty("SpriteManager").GetValue(loader);
             var pages = (IEnumerable)Field(manager, "tilePages");
             var result = new StringBuilder();

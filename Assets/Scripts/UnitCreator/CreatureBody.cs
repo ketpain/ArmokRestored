@@ -308,8 +308,8 @@ public class CreatureBody : MonoBehaviour
                 }
                 else
                     pattern = colorMod.patterns[seed];
-                var matIndex = ContentLoader.GetPatternIndex(race.tissues[layer.TissueID].material);
-                var shapeIndex = ContentLoader.GetShapeIndex(race.tissues[layer.TissueID].material);
+                var matIndex = ContentCatalog.GetPatternIndex(race.tissues[layer.TissueID].material);
+                var shapeIndex = ContentCatalog.GetShapeIndex(race.tissues[layer.TissueID].material);
                 if (colorMod.start_date > 0 && unit != null)
                     ((BodyLayer)layer).ApplyPattern(pattern, Mathf.InverseLerp(colorMod.start_date * 1200, colorMod.end_date * 1200, unit.age), propertyBlock, matIndex, shapeIndex);
                 else

@@ -40,7 +40,7 @@ public class MapExport : MonoBehaviour
 
     private IEnumerator ExportMap(string v)
     {
-        if (ContentLoader.Instance == null)
+        if (ContentCatalog.Current == null)
             yield return null;
         statusText.gameObject.SetActive(true);
         int tileCount = 0;
@@ -276,7 +276,7 @@ public class MapExport : MonoBehaviour
                         case TiletypeMaterial.ROOT:
                         case TiletypeMaterial.TREE_MATERIAL:
                         case TiletypeMaterial.MUSHROOM:
-                            if (!ContentLoader.Instance.GrowthMeshConfiguration.GetValue(tile, layer, out meshContent))
+                            if (!ContentCatalog.Current.GrowthMeshConfiguration.GetValue(tile, layer, out meshContent))
                                 return;
                             break;
                         default:
@@ -293,13 +293,13 @@ public class MapExport : MonoBehaviour
             //    {
             //        if (tile.buildingType == default(BuildingStruct))
             //            return;
-            //        if (!ContentLoader.Instance.BuildingMeshConfiguration.GetValue(tile, layer, out meshContent))
+            //        if (!ContentCatalog.Current.BuildingMeshConfiguration.GetValue(tile, layer, out meshContent))
             //            return;
             //    }
             //    break;
             default:
                 {
-                    if (!ContentLoader.Instance.TileMeshConfiguration.GetValue(tile, layer, out meshContent))
+                    if (!ContentCatalog.Current.TileMeshConfiguration.GetValue(tile, layer, out meshContent))
                         return;
                 }
                 break;
@@ -344,7 +344,7 @@ public class MapExport : MonoBehaviour
 
         //Texture2D tiletexture = null;
         //TextureContent textureContent;
-        //if (ContentLoader.Instance.MaterialTextureConfiguration.GetValue(tile, layer, out textureContent))
+        //if (ContentCatalog.Current.MaterialTextureConfiguration.GetValue(tile, layer, out textureContent))
         //{
         //    tiletexture = textureContent.Texture;
         //    patternName += textureContent.UniqueIndex;
@@ -355,7 +355,7 @@ public class MapExport : MonoBehaviour
 
         //Color color = Color.grey;
         //ColorContent colorContent;
-        //if (ContentLoader.Instance.ColorConfiguration.GetValue(tile, layer, out colorContent))
+        //if (ContentCatalog.Current.ColorConfiguration.GetValue(tile, layer, out colorContent))
         //{
         //    color = colorContent.color;
         //}

@@ -73,9 +73,9 @@ public class BodyLayer : MonoBehaviour, IBodyLayer
         if (renderer != null)
         {
             var tissue = race.tissues[layerRaw.tissue_id];
-            var color = ContentLoader.GetColor(tissue.material);
-            var index = ContentLoader.GetPatternIndex(tissue.material);
-            var shapeIndex = ContentLoader.GetShapeIndex(tissue.material);
+            var color = ContentCatalog.GetColor(tissue.material);
+            var index = ContentCatalog.GetPatternIndex(tissue.material);
+            var shapeIndex = ContentCatalog.GetShapeIndex(tissue.material);
             propertyBlock.SetColor(_MatColorProperty, color);
             propertyBlock.SetColor(_Color1Property, color);
             propertyBlock.SetColor(_Color2Property, color);

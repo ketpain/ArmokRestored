@@ -79,7 +79,7 @@ public class SplatManager : MonoBehaviour
 
     void UpdateSplatTextures()
     {
-        if (ContentLoader.Instance == null)
+        if (ContentCatalog.Current == null)
             return;
         UnityEngine.Profiling.Profiler.BeginSample("UpdateTerrainTextures", this);
         var timer = System.Diagnostics.Stopwatch.StartNew();
@@ -119,7 +119,7 @@ public class SplatManager : MonoBehaviour
 
     void GenerateTerrainTexture(int blockX, int blockY, int blockZ)
     {
-        if (ContentLoader.Instance == null)
+        if (ContentCatalog.Current == null)
             return;
         UnityEngine.Profiling.Profiler.BeginSample("GenerateTerrainTexture", this);
 
@@ -174,16 +174,16 @@ public class SplatManager : MonoBehaviour
                 if (tile.special == TiletypeSpecial.NORMAL || layer == MeshLayer.LayerMaterial)
                 {
                     //If it's natural terrain or grass, use the material normal maps.
-                    terrainIndices[index].g = ContentLoader.GetShapeIndex(tile.GetMaterial(layer)) / 255f;
+                    terrainIndices[index].g = ContentCatalog.GetShapeIndex(tile.GetMaterial(layer)) / 255f;
                 }
                 else
                 {
                     NormalContent norms;
-                    ContentLoader.Instance.ShapeTextureConfiguration.GetValue(tile, layer, out norms);
+                    ContentCatalog.Current.ShapeTextureConfiguration.GetValue(tile, layer, out norms);
                     terrainIndices[index].g = norms.StorageIndex / 255f;
                 }
-                terrainIndices[index].r = ContentLoader.GetPatternIndex(tile.GetMaterial(layer)) / 255f;
-                terrainColors[index] = ContentLoader.GetColor(tile.GetMaterial(layer));
+                terrainIndices[index].r = ContentCatalog.GetPatternIndex(tile.GetMaterial(layer)) / 255f;
+                terrainColors[index] = ContentCatalog.GetColor(tile.GetMaterial(layer));
             }
         UnityEngine.Profiling.Profiler.EndSample();
         UnityEngine.Profiling.Profiler.EndSample();
@@ -194,8 +194,8 @@ public class SplatManager : MonoBehaviour
         terrainTintColor[blockZ] = new Color[MapDataStore.MapSize.x * MapDataStore.MapSize.y];
         for (int i = 0; i < terrainTintColor[blockZ].Length; i++)
         {
-            terrainSplatColor[blockZ][i].r = ContentLoader.Instance.DefaultMatTexIndex;
-            terrainSplatColor[blockZ][i].g = ContentLoader.Instance.DefaultShapeTexIndex;
+            terrainSplatColor[blockZ][i].r = ContentCatalog.Current.DefaultMatTexIndex;
+            terrainSplatColor[blockZ][i].g = ContentCatalog.Current.DefaultShapeTexIndex;
             terrainTintColor[blockZ][i] = Color.gray;
         }
         UpdateTerrainSplatTexture(blockZ);
@@ -284,7 +284,7 @@ public class SplatManager : MonoBehaviour
 
     bool GenerateGrassTexture(int blockX, int blockY, int blockZ)
     {
-        if (ContentLoader.Instance == null)
+        if (ContentCatalog.Current == null)
             return false;
         UnityEngine.Profiling.Profiler.BeginSample("GenerateGrassTexture", this);
 
@@ -317,9 +317,9 @@ public class SplatManager : MonoBehaviour
 
                 grassTiles++;
 
-                grassIndices[index].r = ContentLoader.GetPatternIndex(tile.material) / 255f;
-                grassIndices[index].g = ContentLoader.GetShapeIndex(tile.material) / 255f;
-                grassColors[index] = ContentLoader.GetColor(tile.material);
+                grassIndices[index].r = ContentCatalog.GetPatternIndex(tile.material) / 255f;
+                grassIndices[index].g = ContentCatalog.GetShapeIndex(tile.material) / 255f;
+                grassColors[index] = ContentCatalog.GetColor(tile.material);
                 grassColors[index].a = tile.grassPercent / 100f;
             }
         if (grassTiles == 0)
@@ -450,9 +450,9 @@ public class SplatManager : MonoBehaviour
                     else
                     {
                         if (spatter.item != null)
-                            color = ContentLoader.GetGrowthColor(ContentLoader.GrowthPeriod.Stale, spatter.item.mat_index, spatter.material);
+                            color = ContentCatalog.GetGrowthColor(ContentCatalog.GrowthPeriod.Stale, spatter.item.mat_index, spatter.material);
                         else
-                            color = ContentLoader.GetColor(spatter.material);
+                            color = ContentCatalog.GetColor(spatter.material);
                     }
 
                     float amount = spatter.amount;

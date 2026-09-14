@@ -48,6 +48,12 @@ The corresponding editor API is [`ModelImporter.SetPreBakeCollisionMesh(isConvex
 
 Creatures without an illustration retain the existing DF tile-glyph fallback. This is expected for some ordinary creatures, modded species, and world-generated creatures. Loading reports one informational summary with a count and a few examples instead of a warning for every missing illustration. To add dedicated art, supply a texture named after the creature token in that resource folder and enable Read/Write in its import settings; atlas creation reads the source pixels.
 
+## Map screenshots and definition exports
+
+`MapScreenshot` owns the F9 capture and numbering (`Screenshots/screenshot1.png`, then the next unused number) under Documents / `Application.productName`. Modified F9 captures the minimap when one is assigned; otherwise it reports that no minimap is available. Capturing a render texture restores the previous active target and releases the temporary photo even if writing fails.
+
+`MapDataExport` writes the existing material/item/creature CSV and companion JSON (`list` wrapper), plus building, tile-type and plant CSV files. GameMap supplies the current definitions and the existing debug-option triggers and filenames. These formats and their row order are unchanged. The separate Collada/OBJ tools are unaffected; GameMap's unused commented mesh-export prototype was removed without adding a new mesh format.
+
 ## MeshSerializer editor exports
 
 The `MeshSerializer` inspector exports `.json` with `DataContractJsonSerializer` or `.xml` with `DataContractSerializer`. Both preserve the `[Serializable]` mesh data, including `CPUMesh`'s readonly arrays, vertex count, name, layer, and rotation. JSON stores enum values as numbers; XML uses the data contract's element names and namespaces. Export streams are closed before the operation returns.

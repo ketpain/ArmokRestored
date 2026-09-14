@@ -29,7 +29,7 @@ public class CreatureManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (ContentLoader.Instance == null)
+        if (ContentCatalog.Current == null)
             return;
         if(ItemManager.Instance.loaded)
             UpdateCreatures();
@@ -67,7 +67,7 @@ public class CreatureManager : MonoBehaviour
         }
         if (creatureTemplate == null)
             return;
-        if (ContentLoader.Instance == null)
+        if (ContentCatalog.Current == null)
             return;
         if (!ItemManager.Instance.loaded)
             return;

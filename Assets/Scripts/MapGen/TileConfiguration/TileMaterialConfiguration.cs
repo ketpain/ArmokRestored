@@ -161,7 +161,7 @@ public class TileMaterialConfiguration<T> : TileConfiguration<T> where T : ICont
             MatBasic elemType = MatBasic.INVALID;
             if (elemValue != null)
             {
-                elemType = ContentLoader.lookupMaterialType(elemValue.Value);
+                elemType = ContentCatalog.lookupMaterialType(elemValue.Value);
             }
             if (elemType == MatBasic.INVALID)
             {

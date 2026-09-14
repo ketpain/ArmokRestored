@@ -107,7 +107,7 @@ public class WorldMapMaker : MonoBehaviour
                     fogThick[x, y] = remoteMap.clouds[index].fog == FogType.F0G_THICK;
                 }
             }
-        if(ContentLoader.Instance != null)
+        if(ContentCatalog.Current != null)
             GenerateMesh();
 
 
@@ -315,7 +315,7 @@ public class WorldMapMaker : MonoBehaviour
                 }
 
 
-                Color terrainColor = ContentLoader.GetColor(regionTiles[x, y].surface_material);
+                Color terrainColor = ContentCatalog.GetColor(regionTiles[x, y].surface_material);
 
                 Color plantColor = Color.black;
                 float grassPercent = Mathf.Pow(regionTiles[x, y].vegetation / 100.0f, 0.25F);
@@ -323,7 +323,7 @@ public class WorldMapMaker : MonoBehaviour
 
                 foreach (var item in regionTiles[x, y].plant_materials)
                 {
-                    plantColor += ContentLoader.GetColor(item);
+                    plantColor += ContentCatalog.GetColor(item);
                 }
                 if (regionTiles[x, y].plant_materials.Count == 0)
                     grassPercent = 0;
@@ -348,7 +348,7 @@ public class WorldMapMaker : MonoBehaviour
                         treeMat = growth.mat;
                         break;
                     }
-                    treeColor += ContentLoader.GetColor(treeMat);
+                    treeColor += ContentCatalog.GetColor(treeMat);
                     treeCount++;
                 }
                 if (treeCount == 0)

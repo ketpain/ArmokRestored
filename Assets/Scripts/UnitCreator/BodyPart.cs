@@ -860,8 +860,8 @@ public class BodyPart : MonoBehaviour
                 if (flags.head)
                     continue;
                 MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
-                var color = ContentLoader.GetColor(item.item.item);
-                var index = ContentLoader.GetPatternIndex(item.item.item.material);
+                var color = ContentCatalog.GetColor(item.item.item);
+                var index = ContentCatalog.GetPatternIndex(item.item.item.material);
                 propertyBlock.SetColor("_MatColor", color);
                 propertyBlock.SetFloat("_MatIndex", index);
                 propertyBlock.SetColor("_JobColor", unit.profession_color);

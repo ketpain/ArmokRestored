@@ -288,7 +288,7 @@ public class MaterialXMLConverter
                     MatBasic elemType = MatBasic.INVALID;
                     if (elemValue != null)
                     {
-                        elemType = ContentLoader.lookupMaterialType(elemValue.Value);
+                        elemType = ContentCatalog.lookupMaterialType(elemValue.Value);
                     }
                     if (elemType == MatBasic.INVALID)
                     {

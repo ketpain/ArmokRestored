@@ -9,47 +9,6 @@ using System.Xml.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum MatBasic
-{
-    INVALID = -1,
-    INORGANIC = 0,
-    AMBER = 1,
-    CORAL = 2,
-    GREEN_GLASS = 3,
-    CLEAR_GLASS = 4,
-    CRYSTAL_GLASS = 5,
-    ICE = 6,
-    COAL = 7,
-    POTASH = 8,
-    ASH = 9,
-    PEARLASH = 10,
-    LYE = 11,
-    MUD = 12,
-    VOMIT = 13,
-    SALT = 14,
-    FILTH = 15,
-    FILTH_FROZEN = 16,
-    UNKOWN_FROZEN = 17,
-    GRIME = 18,
-    ICHOR = 20,
-    LEATHER = 37,
-    BLOOD_1 = 39,
-    BLOOD_2 = 40,
-    BLOOD_3 = 41,
-    BLOOD_4 = 42,
-    BLOOD_5 = 43,
-    BLOOD_6 = 44,
-    BLOOD_NAMED = 242,
-    PLANT = 419,
-    WOOD = 420,
-    PLANTCLOTH = 421,
-
-    // filthy hacks to get interface stuff
-    DESIGNATION = -2,
-    CONSTRUCTION = -3,
-
-}
-
 public class ContentLoader : MonoBehaviour
 {
     [SerializeField]
@@ -62,46 +21,9 @@ public class ContentLoader : MonoBehaviour
         sessionRegistration = DFConnection.RegisterConnectionCallback(Initialize);
     }
 
-    public static ContentLoader Instance { get; private set; }
-
-    public static MatBasic lookupMaterialType(string value)
-    {
-        if (value == null)
-            return MatBasic.INVALID;
-        switch (value)
-        {
-            case "Stone":
-                return MatBasic.INORGANIC;
-            case "Metal":
-                return MatBasic.INORGANIC;
-            case "Inorganic":
-                return MatBasic.INORGANIC;
-            case "GreenGlass":
-                return MatBasic.GREEN_GLASS;
-            case "Wood":
-                return MatBasic.WOOD;
-            case "Plant":
-                return MatBasic.PLANT;
-            case "Ice":
-                return MatBasic.ICE;
-            case "ClearGlass":
-                return MatBasic.CLEAR_GLASS;
-            case "CrystalGlass":
-                return MatBasic.CRYSTAL_GLASS;
-            case "PlantCloth":
-                return MatBasic.PLANTCLOTH;
-            case "Leather":
-                return MatBasic.LEATHER;
-            case "Vomit":
-                return MatBasic.VOMIT;
-            case "Designation":
-                return MatBasic.DESIGNATION;
-            case "Construction":
-                return MatBasic.CONSTRUCTION;
-            default:
-                return MatBasic.INVALID;
-        }
-    }
+    private ContentCatalog catalog;
+    public ContentCatalog Catalog { get; private set; }
+    public const long LoadFrameTimeout = 16;
 
     // Retained for legacy configuration callers; execution is owned by LoadOperation.
     internal static IEnumerator StartStaticCoroutine(IEnumerator enumerator) => enumerator;
@@ -109,8 +31,8 @@ public class ContentLoader : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     internal static void ResetForNewScene()
     {
-        Instance = null; _routiner = null;
-        transparentMaterialVersions.Clear();
+        _routiner = null;
+        ContentCatalog.ResetForNewScene();
     }
 
     internal static IDisposable RegisterLoadCallback(Func<IEnumerator> coroutine)
@@ -119,194 +41,6 @@ public class ContentLoader : MonoBehaviour
     private SessionCoordinator session;
     private LoadOperation loadOperation;
     private Func<IEnumerator>[] loadCallbacks;
-
-    public Texture2DArray PatternTextureArray { get; private set; }
-    public float PatternTextureDepth { get; private set; }
-
-    public TextureStorage shapeTextureStorage { get; private set; }
-    public TextureStorage specialTextureStorage { get; private set; }
-
-    /// <summary>
-    /// Get the color associated with a material, falling back to DF state color.
-    /// </summary>
-    /// <param name="mat"></param>
-    /// <returns></returns>
-    public static Color GetColor(MatPairStruct mat)
-    {
-        MaterialTextureSet textureSet;
-        if (MaterialCollection.Instance.TryGetValue(mat, out textureSet))
-        {
-            if(!textureSet.useDFColor)
-                return textureSet.color;
-        }
-        if (!MaterialRaws.Instance.ContainsKey(mat))
-            return new Color32(128, 128, 128, 128);
-        var stateColor = MaterialRaws.Instance[mat].state_color;
-        if (stateColor == null)
-            return new Color32(128, 128, 128, 128);
-        return new Color32((byte)stateColor.red, (byte)stateColor.green, (byte)stateColor.blue, 128);
-    }
-
-    public enum GrowthPeriod
-    {
-        Fresh,
-        Current,
-        Stale
-    }
-
-    public static Color GetGrowthColor(GrowthPeriod period, int growthID, MatPairStruct mat)
-    {
-        if (period == GrowthPeriod.Fresh)
-            return GetColor(mat);
-        if (mat.mat_index >= DFConnection.Instance.NetPlantRawList.plant_raws.Count)
-            return GetColor(mat);
-        if (growthID >= DFConnection.Instance.NetPlantRawList.plant_raws[mat.mat_index].growths.Count)
-            return GetColor(mat);
-
-        var growth = DFConnection.Instance.NetPlantRawList.plant_raws[mat.mat_index].growths[growthID];
-        int currentTicks = TimeHolder.DisplayedTime.CurrentYearTicks;
-
-        RemoteFortressReader.GrowthPrint freshPrints = null;
-        RemoteFortressReader.GrowthPrint currentPrint = null;
-        RemoteFortressReader.GrowthPrint stalePrint = null;
-
-        int minTicks = int.MaxValue;
-        int maxTicks = int.MinValue;
-
-        foreach (var print in growth.prints)
-        {
-            if ((print.timing_start == -1 || print.timing_start <= currentTicks) && (print.timing_end == -1 || print.timing_end >= currentTicks))
-                currentPrint = print;
-            if(print.timing_start == -1 || print.timing_start < minTicks)
-            {
-                minTicks = print.timing_start;
-                freshPrints = print;
-            }
-            if (print.timing_end == -1 || print.timing_end > maxTicks)
-            {
-                maxTicks = print.timing_end;
-                stalePrint = print;
-            }
-        }
-        if (currentPrint == null)
-            currentPrint = stalePrint;
-        switch (period)
-        {
-            case GrowthPeriod.Current:
-                return DfColor.MorphColor(GetColor(mat), freshPrints.color, currentPrint.color);
-            case GrowthPeriod.Stale:
-                return DfColor.MorphColor(GetColor(mat), freshPrints.color, stalePrint.color);
-        }
-        return GetColor(mat);
-    }
-
-    /// <summary>
-    /// Gets a color for a given item type and material combination, including any seasonal variations.
-    /// </summary>
-    /// <param name="item">Item type</param>
-    /// <param name="mat">Material</param>
-    /// <returns></returns>
-    public static Color GetColor(MatPairStruct item, MatPairStruct mat)
-    {
-        switch (item.mat_type)
-        {
-            case 55://PLANT_GROWTH
-                {
-                    return GetGrowthColor(GrowthPeriod.Current, item.mat_index, mat);
-                }
-            default:
-                break;
-        }
-        return GetColor(mat);
-    }
-
-    /// <summary>
-    /// Get the material color of an item including dye
-    /// </summary>
-    /// <param name="item">item to get the color from</param>
-    /// <returns></returns>
-    public static Color GetColor(RemoteFortressReader.Item item)
-    {
-        var color = GetColor(item.type, item.material);
-        var dye = item.dye;
-        if (dye == null)
-            return color;
-        if (!Application.isPlaying)
-        {
-            if (dye.red + dye.green + dye.blue == 0)
-                return color;
-        }
-        color *= (Color)new Color32((byte)dye.red, (byte)dye.green, (byte)dye.blue, 255);
-        return color;
-    }
-
-    public static int GetPatternIndex(MatPairStruct mat)
-    {
-        MaterialTextureSet textureSet;
-        if (MaterialCollection.Instance.TryGetValue(mat, out textureSet))
-        {
-            return textureSet.patternIndex;
-        }
-        if (Instance == null)
-            return 0;
-        return Instance.DefaultMatTexIndex;
-    }
-
-    public static int GetShapeIndex(MatPairStruct mat)
-    {
-        MaterialTextureSet textureSet;
-        if (MaterialCollection.Instance.TryGetValue(mat, out textureSet))
-        {
-            return textureSet.shapeIndex;
-        }
-        if (Instance == null)
-            return 0;
-        return Instance.DefaultShapeTexIndex;
-    }
-
-    public int DefaultMatTexIndex { get; private set; }
-
-    public float DefaultMatTexArrayIndex
-    {
-        get
-        {
-            return 0;
-        }
-    }
-
-
-
-    public int DefaultShapeTexIndex { get; private set; }
-
-    public Matrix4x4 DefaultShapeTexTransform
-    {
-        get
-        {
-            return shapeTextureStorage.getUVTransform(DefaultShapeTexIndex);
-        }
-    }
-
-    public int DefaultSpecialTexIndex { get; private set; }
-
-    public Matrix4x4 DefaultSpecialTexTransform
-    {
-        get
-        {
-            return specialTextureStorage.getUVTransform(DefaultSpecialTexIndex);
-        }
-    }
-
-
-    public TileConfiguration<NormalContent> ShapeTextureConfiguration { get; private set; }
-    public TileConfiguration<MeshContent> TileMeshConfiguration { get; private set; }
-    public TileConfiguration<MeshContent> GrowthMeshConfiguration { get; private set; }
-    public TileConfiguration<LayerContent> MaterialLayerConfiguration { get; private set; }
-    //public TileConfiguration<MeshContent> BuildingMeshConfiguration { get; private set; }
-    //public TileConfiguration<NormalContent> BuildingShapeTextureConfiguration { get; private set; }
-    public TileConfiguration<MeshContent> DesignationMeshConfiguration { get; private set; }
-    public TileConfiguration<MeshContent> CollisionMeshConfiguration { get; private set; }
-    //public TileConfiguration<MeshContent> BuildingCollisionMeshConfiguration { get; private set; }
-    public TileConfiguration<MeshContent> ItemMeshConfiguration { get; private set; }
 
     [SerializeField]
     private CreatureSpriteManager _spriteManager = new CreatureSpriteManager();
@@ -320,7 +54,12 @@ public class ContentLoader : MonoBehaviour
         session = SessionRuntime.Current;
         session.Changed += PresentLoadingState;
         SessionRuntime.Stopping += CancelLoading;
-        SessionRuntime.AfterStop(() => { if (ReferenceEquals(Instance, this)) Instance = null; });
+        catalog = new ContentCatalog(_spriteManager);
+        SessionRuntime.AfterStop(() =>
+        {
+            catalog.Unpublish();
+            Catalog = null;
+        });
 
         try { PrepareTextures(); }
         catch (Exception error) { SessionRuntime.Stop(session, error); }
@@ -329,19 +68,19 @@ public class ContentLoader : MonoBehaviour
     private void PrepareTextures()
     {
 
-        shapeTextureStorage = new TextureStorage();
-        specialTextureStorage = new TextureStorage();
+        catalog.shapeTextureStorage = new TextureStorage();
+        catalog.specialTextureStorage = new TextureStorage();
 
         Debug.Log("Compiling material shape textures.");
         using (new AssetLoadTiming("Read material shape textures"))
         {
             var shapes = Resources.Load<Texture2DArray>("shapeTextures");
             if (shapes == null) throw new InvalidDataException("Generated shape textures are missing. Run Mytools > Validation > Prepare Content.");
-            shapeTextureStorage.AddTextureArray(shapes);
+            catalog.shapeTextureStorage.AddTextureArray(shapes);
         }
 
-        DefaultShapeTexIndex = shapeTextureStorage.AddTexture(CreateFlatTexture(new Color(1f, 0.5f, 1f, 0.5f)));
-        DefaultSpecialTexIndex = specialTextureStorage.AddTexture(Texture2D.blackTexture);
+        catalog.DefaultShapeTexIndex = catalog.shapeTextureStorage.AddTexture(CreateFlatTexture(new Color(1f, 0.5f, 1f, 0.5f)));
+        catalog.DefaultSpecialTexIndex = catalog.specialTextureStorage.AddTexture(Texture2D.blackTexture);
     }
 
     public static Texture2D CreateFlatTexture(Color color)
@@ -436,10 +175,10 @@ public class ContentLoader : MonoBehaviour
         subProgressBar.gameObject.SetActive(true);
         watch.Start();
         using (new AssetLoadTiming("Read material patterns"))
-            PatternTextureArray = Resources.Load<Texture2DArray>("patternTextures");
-        if (PatternTextureArray == null) throw new InvalidDataException("Generated pattern textures are missing. Run Mytools > Validation > Prepare Content.");
-        PatternTextureDepth = PatternTextureArray.depth;
-        Shader.SetGlobalTexture("_MatTexArray", PatternTextureArray);
+            catalog.PatternTextureArray = Resources.Load<Texture2DArray>("patternTextures");
+        if (catalog.PatternTextureArray == null) throw new InvalidDataException("Generated pattern textures are missing. Run Mytools > Validation > Prepare Content.");
+        catalog.PatternTextureDepth = catalog.PatternTextureArray.depth;
+        Shader.SetGlobalTexture("_MatTexArray", catalog.PatternTextureArray);
         float totalItems = loadCallbacks.Length + 2; //Streaming assets, finalizations, and load callbacks.
         float doneItems = 0;
         session.Report("Loading content", doneItems / totalItems);
@@ -459,11 +198,12 @@ public class ContentLoader : MonoBehaviour
                 using (new AssetLoadTiming(callback.Method.DeclaringType.Name + "." + callback.Method.Name))
                     yield return callback();
         }
-        Instance = this;
+        Catalog = catalog;
+        catalog.Publish();
         Debug.Log("Done!");
         watch.Stop();
         Debug.LogFormat("Asset loading [Total]: {0:F1} ms", watch.Elapsed.TotalMilliseconds);
-        Debug.Log(string.Format("loaded {0} meshes, and {1} shape textures.", MeshContent.NumCreated, shapeTextureStorage.AtlasTexture.depth));
+        Debug.Log(string.Format("loaded {0} meshes, and {1} shape textures.", MeshContent.NumCreated, catalog.shapeTextureStorage.AtlasTexture.depth));
         Debug.Log("Loading Complete. Press ESC to change settings or leave feedback. Have a nice day!");
         Debug.Log("Screen is " + Screen.dpi + "dpi.");
         DFConnection.Instance.NeedNewBlocks = true;
@@ -541,39 +281,39 @@ public class ContentLoader : MonoBehaviour
             switch (doc.Name.LocalName)
             {
                 case "shapeTextures":
-                    if (ShapeTextureConfiguration == null)
-                        ShapeTextureConfiguration = TileConfiguration<NormalContent>.GetFromRootElement(doc, "shapeTexture");
-                    yield return ShapeTextureConfiguration.AddSingleContentConfig(doc, shapeTextureStorage);
+                    if (catalog.ShapeTextureConfiguration == null)
+                        catalog.ShapeTextureConfiguration = TileConfiguration<NormalContent>.GetFromRootElement(doc, "shapeTexture");
+                    yield return catalog.ShapeTextureConfiguration.AddSingleContentConfig(doc, catalog.shapeTextureStorage);
                     break;
                 case "tileMeshes":
-                    if (TileMeshConfiguration == null)
-                        TileMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "tileMesh");
-                    yield return TileMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
+                    if (catalog.TileMeshConfiguration == null)
+                        catalog.TileMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "tileMesh");
+                    yield return catalog.TileMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, catalog.shapeTextureStorage, catalog.specialTextureStorage));
                     break;
                 case "materialLayers":
-                    if (MaterialLayerConfiguration == null)
-                        MaterialLayerConfiguration = TileConfiguration<LayerContent>.GetFromRootElement(doc, "materialLayer");
-                    yield return MaterialLayerConfiguration.AddSingleContentConfig(doc);
+                    if (catalog.MaterialLayerConfiguration == null)
+                        catalog.MaterialLayerConfiguration = TileConfiguration<LayerContent>.GetFromRootElement(doc, "materialLayer");
+                    yield return catalog.MaterialLayerConfiguration.AddSingleContentConfig(doc);
                     break;
                 case "growthMeshes":
-                    if (GrowthMeshConfiguration == null)
-                        GrowthMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "growthMesh");
-                    yield return GrowthMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
+                    if (catalog.GrowthMeshConfiguration == null)
+                        catalog.GrowthMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "growthMesh");
+                    yield return catalog.GrowthMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, catalog.shapeTextureStorage, catalog.specialTextureStorage));
                     break;
                 case "designationMeshes":
-                    if (DesignationMeshConfiguration == null)
-                        DesignationMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "designationMesh");
-                    yield return DesignationMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
+                    if (catalog.DesignationMeshConfiguration == null)
+                        catalog.DesignationMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "designationMesh");
+                    yield return catalog.DesignationMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, catalog.shapeTextureStorage, catalog.specialTextureStorage));
                     break;
                 case "collisionMeshes":
-                    if (CollisionMeshConfiguration == null)
-                        CollisionMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "collisionMesh");
-                    yield return CollisionMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
+                    if (catalog.CollisionMeshConfiguration == null)
+                        catalog.CollisionMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "collisionMesh");
+                    yield return catalog.CollisionMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, catalog.shapeTextureStorage, catalog.specialTextureStorage));
                     break;
                 case "itemMeshes":
-                    if (ItemMeshConfiguration == null)
-                        ItemMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "itemMesh");
-                    yield return ItemMeshConfiguration.AddSingleContentConfig(doc, null);
+                    if (catalog.ItemMeshConfiguration == null)
+                        catalog.ItemMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "itemMesh");
+                    yield return catalog.ItemMeshConfiguration.AddSingleContentConfig(doc, null);
                     break;
                 default:
                     break;
@@ -634,21 +374,21 @@ public class ContentLoader : MonoBehaviour
         subProgressBar.SetProgress(0.0f / 3.0f, "Building shape textures...");
         yield return null;
         using (new AssetLoadTiming("Build shape texture array"))
-            shapeTextureStorage.CompileTextures("ShapeTexture", TextureFormat.RGBA32, new Color(1.0f, 0.5f, 0.0f, 0.5f), true);
+            catalog.shapeTextureStorage.CompileTextures("ShapeTexture", TextureFormat.RGBA32, new Color(1.0f, 0.5f, 0.0f, 0.5f), true);
         subProgressBar.SetProgress(1.0f / 3.0f, "Building special textures...");
         yield return null;
         using (new AssetLoadTiming("Build special texture array"))
-            specialTextureStorage.CompileTextures("SpecialTexture");
+            catalog.specialTextureStorage.CompileTextures("SpecialTexture");
 
         subProgressBar.SetProgress(2.0f / 3.0f, "Updating Material Manager...");
         yield return null;
 
-        Vector4 arrayCount = new Vector4(PatternTextureDepth, shapeTextureStorage.Count, specialTextureStorage.Count, shapeTextureStorage.Count);
+        Vector4 arrayCount = new Vector4(catalog.PatternTextureDepth, catalog.shapeTextureStorage.Count, catalog.specialTextureStorage.Count, catalog.shapeTextureStorage.Count);
         if (MaterialManager.Instance)
         {
-            MaterialManager.Instance.SetTexture("_ShapeMap", shapeTextureStorage.AtlasTexture);
-            MaterialManager.Instance.SetTexture("_BumpMap", shapeTextureStorage.AtlasTexture);
-            MaterialManager.Instance.SetTexture("_SpecialTex", specialTextureStorage.AtlasTexture);
+            MaterialManager.Instance.SetTexture("_ShapeMap", catalog.shapeTextureStorage.AtlasTexture);
+            MaterialManager.Instance.SetTexture("_BumpMap", catalog.shapeTextureStorage.AtlasTexture);
+            MaterialManager.Instance.SetTexture("_SpecialTex", catalog.specialTextureStorage.AtlasTexture);
             MaterialManager.Instance.SetVector("_TexArrayCount", arrayCount);
         }
         session.Report("Finalizing low detail creature sprites", session.Progress);
@@ -664,47 +404,6 @@ public class ContentLoader : MonoBehaviour
         yield return null;
     }
 
-    static Dictionary<EntityId, Material> transparentMaterialVersions = new Dictionary<EntityId, Material>();
-    public const long LoadFrameTimeout = 16;
-
-    public static Material getFinalMaterial(Material material, float alpha)
-    {
-        EntityId entityId = material.GetEntityId();
-        if (!transparentMaterialVersions.ContainsKey(entityId) || transparentMaterialVersions[entityId] == null)
-        {
-            switch(material.shader.name)
-            {
-                case "Standard":
-                    Debug.LogWarning(material.name + " Has a standard shader!");
-                    transparentMaterialVersions[entityId] = material;
-                    break;
-                case "Art/ArtImageVertexOpaque":
-                    transparentMaterialVersions[entityId] = material;
-                    break;
-                case "Art/SingleImage":
-                    {
-                        var mat = new Material(material);
-                        mat.shader = Shader.Find("Art/SingleImage Transparent");
-                        mat.name += " Transparent";
-                        transparentMaterialVersions[entityId] = mat;
-                    }
-                    break;
-                default:
-                    {
-                        var mat = new Material(material);
-                        mat.shader = Shader.Find("Building/Transparent");
-                        mat.name += " Transparent";
-                        transparentMaterialVersions[entityId] = mat;
-                    }
-                    break;
-            }
-        }
-
-        if (alpha < 0.5f)
-            return transparentMaterialVersions[entityId];
-        else
-            return material;
-    }
     private System.IDisposable sessionRegistration;
     private void OnDestroy()
     {

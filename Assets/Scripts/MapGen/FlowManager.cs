@@ -145,16 +145,16 @@ public class FlowManager : MonoBehaviour
                             color = Color.white;
                             break;
                         case FlowType.ItemCloud:
-                            color = ContentLoader.GetColor(particle.item, particle.material);
+                            color = ContentCatalog.GetColor(particle.item, particle.material);
                             flowParticles[item.Key].customData.SetVector(ParticleSystemCustomData.Custom1, 0, new ParticleSystem.MinMaxCurve(ImageManager.Instance.GetItemTile(particle.item)));
-                            flowParticles[item.Key].customData.SetVector(ParticleSystemCustomData.Custom1, 1, new ParticleSystem.MinMaxCurve(ContentLoader.GetPatternIndex(particle.material)));
+                            flowParticles[item.Key].customData.SetVector(ParticleSystemCustomData.Custom1, 1, new ParticleSystem.MinMaxCurve(ContentCatalog.GetPatternIndex(particle.material)));
                             break;
                         case FlowType.MaterialGas:
                         case FlowType.MaterialVapor:
                         case FlowType.MaterialDust:
                         case FlowType.Web:
                         default:
-                            color = ContentLoader.GetColor(particle.material);
+                            color = ContentCatalog.GetColor(particle.material);
                             break;
                     }
                     if (item.Key == FlowType.ItemCloud)

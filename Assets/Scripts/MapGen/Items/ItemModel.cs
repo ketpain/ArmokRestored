@@ -52,11 +52,11 @@ public class ItemModel : MonoBehaviour, IClickable
         if (originalMaterial == null)
             originalMaterial = meshRenderer.sharedMaterial;
 
-        Color partColor = ContentLoader.GetColor(itemInput);
-        float textureIndex = ContentLoader.GetPatternIndex(itemInput.material);
-        float shapeIndex = ContentLoader.GetShapeIndex(itemInput.material);
+        Color partColor = ContentCatalog.GetColor(itemInput);
+        float textureIndex = ContentCatalog.GetPatternIndex(itemInput.material);
+        float shapeIndex = ContentCatalog.GetShapeIndex(itemInput.material);
 
-        meshRenderer.sharedMaterial = ContentLoader.getFinalMaterial(originalMaterial, partColor.a);
+        meshRenderer.sharedMaterial = ContentCatalog.getFinalMaterial(originalMaterial, partColor.a);
 
         if(itemInput.type.mat_type == 53 && originalMaterial.shader.name == "Art/SingleImage") //plant. We have colored sprites for these.
             partColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);

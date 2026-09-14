@@ -130,7 +130,7 @@ public class RegionMaker : MonoBehaviour
                 tiles[x, y] = new RegionTile(remoteMap.tiles[index]);
             }
 
-        if (ContentLoader.Instance != null)
+        if (ContentCatalog.Current != null)
             GenerateMesh();
     }
 
@@ -233,13 +233,13 @@ public class RegionMaker : MonoBehaviour
                     west = tiles[x - 1, y].elevation;
 
                 Color terrainColor = Color.green;
-                terrainColor = ContentLoader.GetColor(tile.surfaceMaterial);
+                terrainColor = ContentCatalog.GetColor(tile.surfaceMaterial);
 
                 Color plantColor = Color.black;
                 Color stoneColor = Color.grey;
                 foreach (var item in tile.plantMaterials)
                 {
-                        plantColor += ContentLoader.GetColor(item);
+                        plantColor += ContentCatalog.GetColor(item);
                 }
                 float plantBlend = Mathf.Pow(tile.vegetation / 100.0f, 0.25f);
                 if (tile.plantMaterials.Count == 0)
@@ -249,7 +249,7 @@ public class RegionMaker : MonoBehaviour
 
                 if (tile.stoneMaterials.Count > 0)
                 {
-                        stoneColor = ContentLoader.GetColor(tile.stoneMaterials[0]);
+                        stoneColor = ContentCatalog.GetColor(tile.stoneMaterials[0]);
                 }
 
                 Color blendedColor = Color.Lerp(terrainColor, plantColor, plantBlend);
@@ -283,7 +283,7 @@ public class RegionMaker : MonoBehaviour
                             case SiteRealizationBuildingType.Library:
                             case SiteRealizationBuildingType.Tavern:
                                 {
-                                    Color buildingColor = ContentLoader.GetColor(building.material);
+                                    Color buildingColor = ContentCatalog.GetColor(building.material);
                                     min = new Vector3(building.min_x * MapCoordinates.TileWidth, 0, -building.min_y * MapCoordinates.TileWidth);
                                     max = new Vector3((building.max_x + 1) * MapCoordinates.TileWidth, 2 * MapCoordinates.TileHeight, -(building.max_y + 1) * MapCoordinates.TileWidth);
                                     AddBlock(vert1 + min, vert1 + max, biome, buildingColor, snow);
@@ -320,7 +320,7 @@ public class RegionMaker : MonoBehaviour
                             case SiteRealizationBuildingType.Vault:
                             case SiteRealizationBuildingType.GreatTower:
                                 {
-                                    Color buildingColor = ContentLoader.GetColor(building.material);
+                                    Color buildingColor = ContentCatalog.GetColor(building.material);
                                     min = new Vector3((building.min_x + 5) * MapCoordinates.TileWidth, 0, -(building.min_y + 5) * MapCoordinates.TileWidth);
                                     max = new Vector3((building.max_x - 4) * MapCoordinates.TileWidth, 15 * MapCoordinates.TileHeight, -(building.max_y - 4) * MapCoordinates.TileWidth);
                                     AddCylinder(vert1 + min, vert1 + max, biome, buildingColor, snow);
@@ -328,7 +328,7 @@ public class RegionMaker : MonoBehaviour
                                 }
                             case SiteRealizationBuildingType.CastleTower:
                                 {
-                                    Color buildingColor = ContentLoader.GetColor(building.material);
+                                    Color buildingColor = ContentCatalog.GetColor(building.material);
                                     Color roofColor = buildingColor;
                                     int top = 2;
                                     if (building.tower_info != null)
@@ -353,7 +353,7 @@ public class RegionMaker : MonoBehaviour
                                 }
                             case SiteRealizationBuildingType.CastleWall:
                                 {
-                                    Color buildingColor = ContentLoader.GetColor(building.material);
+                                    Color buildingColor = ContentCatalog.GetColor(building.material);
                                     if (building.wall_info != null)
                                     {
                                         min = new Vector3((building.wall_info.start_x + 1) * MapCoordinates.TileWidth, (building.wall_info.start_z - tile.elevation) * MapCoordinates.TileHeight, -(building.wall_info.start_y + 1) * MapCoordinates.TileWidth);
@@ -373,7 +373,7 @@ public class RegionMaker : MonoBehaviour
                                     var mat = building.material;
                                     if (mat.mat_type < 0)
                                         mat = new MatPairStruct(0, mat.mat_index);
-                                    Color buildingColor = ContentLoader.GetColor(mat);
+                                    Color buildingColor = ContentCatalog.GetColor(mat);
                                     min = new Vector3(building.min_x * MapCoordinates.TileWidth, 0, -building.min_y * MapCoordinates.TileWidth);
                                     int tombHeight = (building.max_x - building.min_x + building.max_y - building.min_y) / 8;
                                     max = new Vector3((building.max_x + 1) * MapCoordinates.TileWidth, tombHeight * MapCoordinates.TileHeight, -(building.max_y + 1) * MapCoordinates.TileWidth);
@@ -396,7 +396,7 @@ public class RegionMaker : MonoBehaviour
                                             break;
                                         }
 
-                                    Color buildingColor = ContentLoader.GetColor(tree);
+                                    Color buildingColor = ContentCatalog.GetColor(tree);
                                     Vector3 pos = new Vector3((building.min_x + building.max_x + 1) / 2.0f, 0, -(building.min_y + building.max_y + 1) / 2.0f) * MapCoordinates.TileWidth;
 
                                     float treeRadius = (building.max_x - building.min_x + building.max_y - building.min_y) / 4.0f * MapCoordinates.TileWidth * 1.28676f;
@@ -443,7 +443,7 @@ public class RegionMaker : MonoBehaviour
                                 tree = growth.mat;
                                 break;
                             }
-                            Color treeColor = ContentLoader.GetColor(tree);
+                            Color treeColor = ContentCatalog.GetColor(tree);
 
                             if (tree.mat_type == 419) // bare tree
                                 AddTree(new Vector3(coord.x, tile.elevation * MapCoordinates.TileHeight, coord.y), MapCoordinates.TileWidth / 2, Random.Range(7.0f, 9.0f) * MapCoordinates.TileHeight, treeColor, biome, snow, Random.Range(0.0f, 360.0f));

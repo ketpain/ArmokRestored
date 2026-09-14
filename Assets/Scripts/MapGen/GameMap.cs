@@ -150,7 +150,7 @@ public class GameMap : MonoBehaviour
     {
         Debug.Log("Connected");
         enabled = true;
-        mesher = BlockMesher.GetMesher(GameSettings.Instance.meshing.meshingThreads);
+        mesher = BlockMesher.GetMesher(GameSettings.Instance.meshing.meshingThreads, ContentCatalog.Current);
         SessionRuntime.Own(mesher);
         // Initialize materials, if available
         if (GameSettings.Instance.debug.saveMaterialList)
@@ -266,7 +266,7 @@ public class GameMap : MonoBehaviour
             }
         }
 
-        if (ContentLoader.Instance == null)
+        if (ContentCatalog.Current == null)
             return;
 
         UpdateRequestRegion();
@@ -867,7 +867,7 @@ public class GameMap : MonoBehaviour
     //void DrawItems()
     //{
     //    return;
-    //    if (ContentLoader.Instance == null)
+    //    if (ContentCatalog.Current == null)
     //        return;
     //    UnityEngine.Profiling.Profiler.BeginSample("DrawItems", this);
     //    if (itemParticles == null)
@@ -897,7 +897,7 @@ public class GameMap : MonoBehaviour
     //            var part = new ParticleSystem.Particle();
     //            part.startSize = 1;
     //            part.position = MapCoordinates.DFtoUnityCoord(currentItem.pos) + new Vector3(0, MapCoordinates.FloorHeight + 0.1f, 0) + Stacker.SpiralHemisphere(index);
-    //            if (ContentLoader.Instance.ColorConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out colorContent))
+    //            if (ContentCatalog.Current.ColorConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out colorContent))
     //                part.startColor = colorContent.color;
     //            else if (materials.ContainsKey(currentItem.material) && materials[currentItem.material].state_color != null)
     //            {
@@ -912,7 +912,7 @@ public class GameMap : MonoBehaviour
     //                part.startColor *= (Color)(new Color32((byte)currentItem.dye.red, (byte)currentItem.dye.green, (byte)currentItem.dye.blue, 255));
     //            }
 
-    //            if (ContentLoader.Instance.ItemMeshConfiguration != null && ContentLoader.Instance.ItemMeshConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out meshContent))
+    //            if (ContentCatalog.Current.ItemMeshConfiguration != null && ContentCatalog.Current.ItemMeshConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out meshContent))
     //            {
     //                ParticleSystem partSys;
     //                if (!customItemParticleSystems.ContainsKey(meshContent.UniqueIndex))
@@ -950,7 +950,7 @@ public class GameMap : MonoBehaviour
     //                    else
     //                    {
     //                        TextureContent texCon;
-    //                        if (ContentLoader.Instance.MaterialTextureConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out texCon))
+    //                        if (ContentCatalog.Current.MaterialTextureConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out texCon))
     //                            renderer.material.SetTexture("_MainTex", texCon.Texture);
     //                    }
     //                    if (meshContent.ShapeTexture != null)
@@ -958,7 +958,7 @@ public class GameMap : MonoBehaviour
     //                    else
     //                    {
     //                        NormalContent normalCon;
-    //                        if (ContentLoader.Instance.ShapeTextureConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out normalCon))
+    //                        if (ContentCatalog.Current.ShapeTextureConfiguration.GetValue(tempTile, MeshLayer.StaticMaterial, out normalCon))
     //                            renderer.material.SetTexture("_BumpMap", normalCon.Texture);
     //                    }
     //                    if (meshContent.SpecialTexture != null)

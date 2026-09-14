@@ -45,9 +45,9 @@ namespace Building
             {
                 if (index < 0)
                 {
-                    partColor = ContentLoader.GetColor(buildingInput.material);
-                    textureIndex = ContentLoader.GetPatternIndex(buildingInput.material);
-                    shapeIndex = ContentLoader.GetShapeIndex(buildingInput.material);
+                    partColor = ContentCatalog.GetColor(buildingInput.material);
+                    textureIndex = ContentCatalog.GetPatternIndex(buildingInput.material);
+                    shapeIndex = ContentCatalog.GetShapeIndex(buildingInput.material);
                 }
                 else if (index >= buildingInput.items.Count - endOffset)
                 {
@@ -64,9 +64,9 @@ namespace Building
                         gameObject.SetActive(false);
                         return;
                     }
-                    partColor = ContentLoader.GetColor(buildingItem.item);
-                    textureIndex = ContentLoader.GetPatternIndex(buildingItem.item.material);
-                    shapeIndex = ContentLoader.GetShapeIndex(buildingItem.item.material);
+                    partColor = ContentCatalog.GetColor(buildingItem.item);
+                    textureIndex = ContentCatalog.GetPatternIndex(buildingItem.item.material);
+                    shapeIndex = ContentCatalog.GetShapeIndex(buildingItem.item.material);
                     ItemModel.UpdateImprovements(gameObject, buildingItem.item);
                 }
             }
@@ -89,9 +89,9 @@ namespace Building
                     if ((itemCode.mat_index == -1 && itemCode.mat_type == buildingItem.item.type.mat_type)
                         || (buildingItem.item.type == itemCode))
                     {
-                        partColor = ContentLoader.GetColor(buildingItem.item);
-                        textureIndex = ContentLoader.GetPatternIndex(buildingItem.item.material);
-                        shapeIndex = ContentLoader.GetShapeIndex(buildingItem.item.material);
+                        partColor = ContentCatalog.GetColor(buildingItem.item);
+                        textureIndex = ContentCatalog.GetPatternIndex(buildingItem.item.material);
+                        shapeIndex = ContentCatalog.GetShapeIndex(buildingItem.item.material);
                         ItemModel.UpdateImprovements(gameObject, buildingItem.item);
                         set = true;
                         break;
@@ -112,7 +112,7 @@ namespace Building
             if (originalMaterial == null)
                 originalMaterial = meshRenderer.sharedMaterial;
 
-            meshRenderer.sharedMaterial = ContentLoader.getFinalMaterial(originalMaterial, partColor.a);
+            meshRenderer.sharedMaterial = ContentCatalog.getFinalMaterial(originalMaterial, partColor.a);
 
             MaterialPropertyBlock prop = new MaterialPropertyBlock();
             prop.SetColor("_MatColor", partColor);

@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14
 
-Status: Phases 0-2 complete and verified. Phase 3 is underway, starting with cursor inspection and retiring the legacy command UI. Phases 4-6 remain pending.
+Status: Phases 0-2 complete and verified. Phase 3 now includes inspection, coordinates, screenshots/data exports and the loaded content catalog. Release failure handling and a Windows player smoke check are also complete. Remaining map input/presentation work and most of Phases 4-6 are pending.
 
 ## Objective
 
@@ -120,7 +120,7 @@ Priority: After the first milestone. Dependencies: Phase 2.
 - [ ] Move map shortcuts/UI commands into a focused input/controller component using the existing action asset. Keep a clear handoff for commands that affect map rendering or DF.
 - [x] Separate coordinate conversion and shared world constants from `GameMap` where they can become independent helpers. Add representative round-trip/boundary tests.
 - [ ] Reduce `GameMap` to map presentation, visibility, and coordination with its renderer/mesher, extracting those further only where ownership becomes clearer.
-- [ ] Split `ContentLoader` into the loading process and the resulting content catalog used for material/sprite lookups. Publish an explicit ready result; document any data that must remain mutable after loading.
+- [x] Split `ContentLoader` into the loading process and the resulting content catalog used for material/sprite lookups. Publish an explicit ready result; document any data that must remain mutable after loading.
 - [ ] Retain forwarding methods or serialized compatibility fields during migration where existing prefabs/scenes depend on them. Remove them only after checking every caller and serialized reference.
 
 Acceptance:
@@ -277,3 +277,5 @@ References: [Unity assembly organization](https://docs.unity3d.com/6000.0/Docume
 - 2026-09-14: Extracted MapCoordinates and shared world constants from GameMap, migrating all source callers while preserving DFCoord and scene GUIDs. Twelve characterization cases passed before and after extraction (52 content tests total); both live tests passed with three Play sessions, unchanged sprite mip hashes, working inspection, retry and stopped workers. Horizontal midpoint ties, vertical floor behavior, half-tile floating origins and synchronized map elevation are unchanged. Evidence: Logs/ReleaseAndPhase3-20260914/coordinates-*.xml.
 
 - 2026-09-14: Extracted MapScreenshot and MapDataExport. GameMap supplies the existing debug flags, definition collections and Documents paths; CSV/JSON formatting and screenshot naming are preserved. Minimap capture restores the previous active render target and destroys temporary textures on success or failure, and reports an unavailable minimap instead of dereferencing it. Removed only the uncalled, entirely commented GameMap mesh-export prototype; retained its serialized testMesh field. All 57 content tests passed, including five export/capture checks. Live shortcut verification follows with the catalog slice.
+
+- 2026-09-14: Completed the loaded-content split. ContentLoader builds a private ContentCatalog and publishes it only after all content callbacks succeed; GameMap explicitly passes it to mesher constructors. Texture/configuration/sprite access and material lookups moved into the catalog; static preview fallbacks and existing seasonal/cache mutability are documented. Shutdown unpublishes only the owning catalog after workers stop. All 86 maintained checks passed: 57 content/export/coordinate, 23 lifecycle, four input and two live tests. The live run verified new catalogs across three Play sessions, worker ownership, cancellation/retry and identical sprite mip hashes. The final Windows release build succeeded with 23 existing API/serialization warnings and no errors; the actual player rendered, moved/zoomed/orbited, pinned/released inspection, saved an F9 PNG, handled Ctrl+F9 without a minimap, and closed in 2.4 seconds without exceptions. Preflight passed. User build profiles/settings were preserved. Evidence: Logs/ReleaseAndPhase3-20260914, including catalog-*.xml, build-report.json and player-final.log. Normal domain/scene reload validation was not rerun in this slice; other platforms remain unverified. Remaining follow-ups: map input/controller extraction, editor preview preparation, existing warnings and the small magenta entity seen before and after these refactors.

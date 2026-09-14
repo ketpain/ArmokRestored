@@ -16,9 +16,9 @@ public class ItemImprovement : MonoBehaviour
 
     internal void UpdateImprovement(RemoteFortressReader.ItemImprovement improvement)
     {
-        Color matColor = ContentLoader.GetColor(improvement.material);
-        float textureIndex = ContentLoader.GetPatternIndex(improvement.material);
-        float shapeIndex = ContentLoader.GetShapeIndex(improvement.material);
+        Color matColor = ContentCatalog.GetColor(improvement.material);
+        float textureIndex = ContentCatalog.GetPatternIndex(improvement.material);
+        float shapeIndex = ContentCatalog.GetShapeIndex(improvement.material);
         image = improvement.image;
 
         if (actualModel != null)
@@ -66,7 +66,7 @@ public class ItemImprovement : MonoBehaviour
         else
         {
             originalMaterial = meshRenderer.sharedMaterial;
-            meshRenderer.sharedMaterial = ContentLoader.getFinalMaterial(originalMaterial, matColor.a);
+            meshRenderer.sharedMaterial = ContentCatalog.getFinalMaterial(originalMaterial, matColor.a);
         }
 
         MaterialPropertyBlock prop = new MaterialPropertyBlock();

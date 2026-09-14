@@ -223,7 +223,7 @@ Unity scene startup
 |- DFConnection -> vendored DFHack client + local protocol messages -> running DF
 |  `- fetched definitions and buffered live map/entity updates
 |- ContentLoader -> StreamingAssets index + material resources + sprite cache
-|  `- content matching and registered building/item/sprite/image loaders
+|  `- content matching and registered loaders -> published ContentCatalog
 |- GameMap -> MapDataStore + BlockMesher -> CPU mesh results -> Unity meshes
 |  `- map presentation, creature/building/item managers, distant terrain
 `- camera and UI -> ArmokInput + InputSystem_Actions
@@ -275,9 +275,15 @@ See `Docs/SessionLifecycle.md` for detailed ordering and failure behavior.
 * `Assets/Scripts/MapGen/ContentLoader.cs` loads the index at
   `Assets/StreamingAssets/index.txt`, parses content definitions, builds shared
   texture/sprite data, matches DF materials, and runs registered content loaders.
-  It publishes `ContentLoader.Instance` only after successful completion. It
-  still owns substantial content preparation; the planned catalog extraction
-  has not been completed.
+  It builds a private `ContentCatalog`, then publishes `Catalog` and
+  `ContentCatalog.Current` only after successful completion of all registered
+  loaders. `Assets/Armok/Runtime/Content/ContentCatalog.cs` holds loaded texture
+  layouts, configurations, sprite access and material lookup logic. Both remain
+  in `Assembly-CSharp`. GameMap passes the published catalog to mesher workers;
+  shutdown unpublishes it only after workers stop. Static material lookups retain
+  editor-preview fallbacks and existing DF/material singleton dependencies.
+  Configurations/layout are fixed after loading; lookup caches, seasonal colors,
+  sprite selection and main-thread transparent material variants remain mutable.
 * `Assets/Scripts/MapGen/ContentType`, `TileConfiguration`, `MultiMatcher`, and
   `RawParser` contain visual content definitions, selection rules, token matching,
   and raw parsing. `MaterialStore` and `TextureAtlas` contain material collections,
@@ -346,7 +352,7 @@ Quality settings when making unrelated changes.
 | `Armok.Lifecycle` | Session state, load ownership, suspension, and worker shutdown; no Unity engine references. |
 | `Armok.Input` | Shared actions wrapper; references `Unity.InputSystem`. |
 | `Armok.Textures` | Resizing and sprite cache helpers; uses Unity types but no DF types. The internal cache grants friend access to `Assembly-CSharp` and its tests. |
-| `Assembly-CSharp` | Most legacy runtime code, `SessionRuntime`, and the extracted inspection UI. |
+| `Assembly-CSharp` | Most legacy runtime code, `SessionRuntime`, coordinates, content catalog, exports and inspection UI. |
 | Unity predefined editor/first-pass assemblies | Existing Editor, Plugins, and Standard Assets code follows Unity's special-folder compilation rules where not covered by an asmdef. |
 
 The three extracted production assemblies are auto-referenced. Custom test
@@ -369,8 +375,9 @@ must be accounted for explicitly.
   release commands and protocol generation. Windows release builds explicitly
   select Map Mode, prepare materials, and package extras from `ReleaseFiles`.
   `Assets/Plugins/BuildSettings.cs` supplies release configuration. The default
-  `ProjectSettings/EditorBuildSettings.asset` still lists SampleScene. Correct
-  build-result handling requires success before packaging; Unity's debugging
+  committed `ProjectSettings/EditorBuildSettings.asset` still lists SampleScene;
+  local build profiles can override it. The release command requires build
+  success before packaging; Unity's debugging
   backup is excluded from the archive. The Windows release player has a recorded
   live check; other platforms remain unverified.
 * `Assets/MeshSerializer` contains the mesh export data/component and its editor
@@ -422,8 +429,9 @@ must be accounted for explicitly.
   `Docs/ThirdParty.md` document their corresponding boundaries and dependencies.
 * `CurrentTasks.md` is the maintenance roadmap and verification record. Phases
   0-2 are complete; Phase 3 has begun with inspection and legacy HUD retirement.
-  Further map/content extraction, editor/build improvements, folder/assembly
-  restructuring, and final player validation remain work to do. Do not describe
+  Coordinates, screenshots/data exports and the loaded content catalog are now
+  extracted. Further map input/presentation separation, editor preparation,
+  folder/assembly restructuring and final regression work remain. Do not describe
   planned modules as existing architecture.
 * `README.md` retains upstream project context; use the restoration documents
   above for the current checkout and workflow. Keep this architecture section

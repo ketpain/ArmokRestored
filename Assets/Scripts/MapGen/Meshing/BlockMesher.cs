@@ -14,7 +14,7 @@ using UnityEngine;
 
 abstract class BlockMesher : ISessionWorker {
     protected volatile bool finished;
-    protected readonly ContentLoader content;
+    protected readonly ContentCatalog content;
     protected Exception failure;
     public abstract bool IsStopped { get; }
     public virtual void RequestStop()
@@ -26,13 +26,13 @@ abstract class BlockMesher : ISessionWorker {
     protected void CheckCancellation() { if (finished) throw new OperationCanceledException(); }
 
     // If n = 0, single threaded; else multithreaded.
-    public static BlockMesher GetMesher (int nThreads) {
+    public static BlockMesher GetMesher (int nThreads, ContentCatalog content) {
         if (nThreads < 0) {
             throw new System.InvalidOperationException(nThreads + " threads? What??");
         } else if (nThreads == 0) {
-            return new SingleThreadedMesher();
+            return new SingleThreadedMesher(content);
         } else {
-            return new MultiThreadedMesher(nThreads);
+            return new MultiThreadedMesher(content, nThreads);
         }
     }
 
@@ -93,8 +93,8 @@ abstract class BlockMesher : ISessionWorker {
     protected readonly Queue<Result> resultQueue;
     protected readonly Stack<MapDataStore> recycledBlocks; // Object pool!
 
-    protected BlockMesher() {
-        content = ContentLoader.Instance;
+    protected BlockMesher(ContentCatalog content) {
+        this.content = content ?? throw new ArgumentNullException(nameof(content));
         // Make queues
         requestQueue = new Util.UniqueQueue<DFCoord, Request>();
         recycledBlocks = new Stack<MapDataStore>();
@@ -523,8 +523,8 @@ abstract class BlockMesher : ISessionWorker {
             buffer.meshData = meshContent.MeshData[layer];
             buffer.transform = Matrix4x4.TRS(pos, meshContent.GetRotation(tile), Vector3.one);
 
-            index1.x = ContentLoader.GetPatternIndex(tile.DesignationMat);
-            buffer.color = ContentLoader.GetColor(tile.DesignationMat);
+            index1.x = ContentCatalog.GetPatternIndex(tile.DesignationMat);
+            buffer.color = ContentCatalog.GetColor(tile.DesignationMat);
             if (meshContent.ShapeTexture != null)
                 index1.y = meshContent.ShapeTexture.StorageIndex;
             else
@@ -541,30 +541,30 @@ abstract class BlockMesher : ISessionWorker {
             return;
         }
 
-        var matColor = ContentLoader.GetColor(tile.GetMaterial(layer));
-        var matPatternIndex = ContentLoader.GetPatternIndex(tile.GetMaterial(layer));
+        var matColor = ContentCatalog.GetColor(tile.GetMaterial(layer));
+        var matPatternIndex = ContentCatalog.GetPatternIndex(tile.GetMaterial(layer));
 
         switch (layer)
         {
             case MeshLayer.GrowthMaterial:
             case MeshLayer.GrowthCutout:
             case MeshLayer.GrowthTransparent:
-                matColor = ContentLoader.GetColor(new MatPairStruct(55, 0), tile.GetMaterial(layer));
+                matColor = ContentCatalog.GetColor(new MatPairStruct(55, 0), tile.GetMaterial(layer));
                 break;
             case MeshLayer.GrowthMaterial1:
             case MeshLayer.GrowthCutout1:
             case MeshLayer.GrowthTransparent1:
-                matColor = ContentLoader.GetColor(new MatPairStruct(55, 1), tile.GetMaterial(layer));
+                matColor = ContentCatalog.GetColor(new MatPairStruct(55, 1), tile.GetMaterial(layer));
                 break;
             case MeshLayer.GrowthMaterial2:
             case MeshLayer.GrowthCutout2:
             case MeshLayer.GrowthTransparent2:
-                matColor = ContentLoader.GetColor(new MatPairStruct(55, 2), tile.GetMaterial(layer));
+                matColor = ContentCatalog.GetColor(new MatPairStruct(55, 2), tile.GetMaterial(layer));
                 break;
             case MeshLayer.GrowthMaterial3:
             case MeshLayer.GrowthCutout3:
             case MeshLayer.GrowthTransparent3:
-                matColor = ContentLoader.GetColor(new MatPairStruct(55, 3), tile.GetMaterial(layer));
+                matColor = ContentCatalog.GetColor(new MatPairStruct(55, 3), tile.GetMaterial(layer));
                 break;
             default:
                 break;
@@ -735,14 +735,14 @@ abstract class BlockMesher : ISessionWorker {
 // For meshing on the Unity thread.
 // Mostly for debugging purposes.
 sealed class SingleThreadedMesher : BlockMesher {
-    public SingleThreadedMesher()
+    public SingleThreadedMesher(ContentCatalog content) : base(content)
     {
         InitBuffers();
     }
 
     public override void Poll()
     {
-        if (finished || content == null) return;
+        if (finished) return;
         StatsReadout.QueueLength = requestQueue.Count;
         if (requestQueue.Count == 0) return;
         Request req = requestQueue.Dequeue();
@@ -766,7 +766,7 @@ sealed class MultiThreadedMesher : BlockMesher {
     private readonly Thread[] threads;
     private long averageTicks;
 
-    public MultiThreadedMesher(int nThreads = 1)
+    public MultiThreadedMesher(ContentCatalog content, int nThreads = 1) : base(content)
     {
         threads = new Thread[nThreads];
         for (int i = 0; i < nThreads; i++)

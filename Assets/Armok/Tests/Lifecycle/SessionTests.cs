@@ -29,7 +29,10 @@ namespace Armok.Tests
         public void IdleMesherStopsWithoutAnotherPoll(int threadCount)
         {
             var type = Type.GetType("BlockMesher, Assembly-CSharp", true);
-            var mesher = (ISessionWorker)type.GetMethod("GetMesher").Invoke(null, new object[] { threadCount });
+            var catalogType = Type.GetType("ContentCatalog, Assembly-CSharp", true);
+            var catalog = Activator.CreateInstance(catalogType, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, new object[] { null }, null);
+            var mesher = (ISessionWorker)type.GetMethod("GetMesher").Invoke(null, new object[] { threadCount, catalog });
             try
             {
                 Assert.That(WorkerShutdown.Stop(new[] { mesher }, 500), Is.True);
