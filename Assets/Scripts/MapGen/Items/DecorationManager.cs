@@ -1,10 +1,10 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 #pragma warning disable 0649 //Variable not assigned.
 
 [ExecuteInEditMode]
-public class DecorationManager : MonoBehaviour
+public class DecorationManager : MonoBehaviour, ISessionContentParticipant
 {
     static DecorationManager _instance;
     public static DecorationManager Instance
@@ -52,7 +52,7 @@ public class DecorationManager : MonoBehaviour
             }
             Debug.Log("Loaded shapes.");
         }
-        else ContentLoader.RegisterLoadCallback(LoadShapes);
+        else RegisterSessionContent();
     }
 
     private IEnumerator LoadShapes()
@@ -112,4 +112,14 @@ public class DecorationManager : MonoBehaviour
 
         return _shape;
     }
+    private Armok.Lifecycle.SessionCoordinator registeredSession;
+    public void RegisterSessionContent()
+    {
+        if (!Application.isPlaying || ReferenceEquals(registeredSession, SessionRuntime.Current)) return;
+        sessionRegistration?.Dispose();
+        registeredSession = SessionRuntime.Current;
+        sessionRegistration = ContentLoader.RegisterLoadCallback(LoadShapes);
+    }
+    private System.IDisposable sessionRegistration;
+    private void OnDestroy() { sessionRegistration?.Dispose(); }
 }

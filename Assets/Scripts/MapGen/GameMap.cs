@@ -176,7 +176,9 @@ public class GameMap : MonoBehaviour
         Debug.Log("xcodeVersion: " + BuildManifest.Instance.xcodeVersion);
         Debug.Log("cloudBuildTargetName: " + BuildManifest.Instance.cloudBuildTargetName);
 
-        DFConnection.RegisterConnectionCallback(OnConnectToDF);
+        session = SessionRuntime.Current;
+        readyRegistration = session.OnReady(OnConnectToDF);
+        SessionRuntime.Stopping += StopPresentation;
 
 #if DEVELOPMENT_BUILD
         Debug.Log("Dev build");
@@ -223,11 +225,16 @@ public class GameMap : MonoBehaviour
             UnityEngine.Profiling.Profiler.EndSample();
     }
 
+    private Armok.Lifecycle.SessionCoordinator session;
+    private System.IDisposable readyRegistration;
+    private void StopPresentation() { enabled = false; HideHelp(); }
+
     void OnConnectToDF()
     {
         Debug.Log("Connected");
         enabled = true;
         mesher = BlockMesher.GetMesher(GameSettings.Instance.meshing.meshingThreads);
+        SessionRuntime.Own(mesher);
         // Initialize materials, if available
         if (GameSettings.Instance.debug.saveMaterialList)
             SaveMaterialList(MaterialRaws.Instance, Path.Combine(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName), "MaterialList.csv"));
@@ -287,6 +294,7 @@ public class GameMap : MonoBehaviour
     // Run once per frame.
     void Update()
     {
+        if (!SessionRuntime.Ready) return;
         if (ArmokInput.Action("ToggleDF").WasPressedThisFrame() && EventSystem.current.currentSelectedGameObject == null)
         {
             GameSettings.Instance.game.showDFScreen = !GameSettings.Instance.game.showDFScreen;
@@ -710,11 +718,10 @@ public class GameMap : MonoBehaviour
 
     void OnDestroy()
     {
-        if (mesher != null)
-        {
-            mesher.Terminate();
-            mesher = null;
-        }
+        readyRegistration?.Dispose();
+        SessionRuntime.Stopping -= StopPresentation;
+        SessionRuntime.Stop(session);
+        if (Instance == this) Instance = null;
     }
 
     public void OpenURL(string url)

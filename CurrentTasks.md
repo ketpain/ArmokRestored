@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13
 
-Status: Phases 0 and 1 complete and verified. Phase 2 (session startup/shutdown ownership) is next; Phases 2-6 remain pending.
+Status: Phases 0-2 complete and verified. Phase 3 (focused responsibility extraction) is next; Phases 3-6 remain pending.
 
 ## Objective
 
@@ -81,16 +81,16 @@ Priority: First implementation milestone. Dependencies: Phase 1; add lifecycle t
 
 Primary files: `DFConnection.cs`, `ContentLoader.cs`, `GameMap.cs`, and `Meshing/BlockMesher.cs` under `Assets/Scripts/MapGen/`.
 
-- [ ] Document the actual initialization dependencies, especially which content managers require fetched DF definitions and when rendering may begin.
-- [ ] Introduce a small application/session coordinator with explicit stages such as `Disconnected`, `Connecting`, `LoadingContent`, `Ready`, `Stopping`, and `Failed`. Keep DF suspension and application loading states distinct.
-- [ ] Give each stage a clear completion/failure result. Drive loading status through a progress interface/event so the loader does not need to manipulate help panels or unrelated scene UI.
-- [ ] Move session-scoped callbacks and state under the coordinator's ownership. Make registration/removal and repeated initialization explicit; clear state consistently with reload enabled or disabled.
-- [ ] Begin separating the RPC/polling client from the `DFConnection` scene component. Expose the small connection operations needed by startup and tests without creating a broad abstraction framework. Add a controlled connection substitute for offline lifecycle/failure tests.
-- [ ] Replace `Thread.Abort()` in network and meshing shutdown with cooperative cancellation. Wake sleeping workers and provide bounded socket waits/interruption for blocked network calls; cancellation alone cannot unblock a synchronous read.
-- [ ] Pair DF suspend/resume operations with exception-safe cleanup. Define behavior when a disconnect prevents a resume acknowledgement and test it using a controlled peer.
-- [ ] Ensure workers finish or acknowledge cancellation before their data and Unity-facing owners are disposed. An old session must never clear or dispose a newer session's connection/state.
-- [ ] Keep stop operations bounded and observable, including multiple meshing workers. Avoid accumulating a separate long main-thread wait for every worker.
-- [ ] Define failure handling for absent DF, incompatible/failed RPC setup, interrupted content loading, disconnect during polling, and stop during a load. Restore the UI to a useful state and allow a deliberate retry without retaining callbacks from the failed attempt.
+- [x] Document the actual initialization dependencies, especially which content managers require fetched DF definitions and when rendering may begin.
+- [x] Introduce a small application/session coordinator with explicit stages such as `Disconnected`, `Connecting`, `LoadingContent`, `Ready`, `Stopping`, and `Failed`. Keep DF suspension and application loading states distinct.
+- [x] Give each stage a clear completion/failure result. Drive loading status through a progress interface/event so the loader does not need to manipulate help panels or unrelated scene UI.
+- [x] Move session-scoped callbacks and state under the coordinator's ownership. Make registration/removal and repeated initialization explicit; clear state consistently with reload enabled or disabled.
+- [x] Begin separating the RPC/polling client from the `DFConnection` scene component. Expose the small connection operations needed by startup and tests without creating a broad abstraction framework. Add a controlled connection substitute for offline lifecycle/failure tests.
+- [x] Replace `Thread.Abort()` in network and meshing shutdown with cooperative cancellation. Wake sleeping workers and provide bounded socket waits/interruption for blocked network calls; cancellation alone cannot unblock a synchronous read.
+- [x] Pair DF suspend/resume operations with exception-safe cleanup. Define behavior when a disconnect prevents a resume acknowledgement and test it using a controlled peer.
+- [x] Ensure workers finish or acknowledge cancellation before their data and Unity-facing owners are disposed. An old session must never clear or dispose a newer session's connection/state.
+- [x] Keep stop operations bounded and observable, including multiple meshing workers. Avoid accumulating a separate long main-thread wait for every worker.
+- [x] Define failure handling for absent DF, incompatible/failed RPC setup, interrupted content loading, disconnect during polling, and stop during a load. Restore the UI to a useful state and allow a deliberate retry without retaining callbacks from the failed attempt.
 
 Acceptance:
 
@@ -99,6 +99,17 @@ Acceptance:
 - Both existing polling modes, if retained, and the configured meshing modes have defined stop behavior.
 - No network or meshing shutdown path relies on `Thread.Abort()`.
 - A live DF smoke run still loads and renders correctly, with preserved input behavior and no material startup errors.
+
+Completed 2026-09-13:
+
+- Added the independent `Armok.Lifecycle` assembly and scene composition in `Assets/Armok/Runtime/Integration/SessionRuntime.cs`. Startup dependencies, cancellation, socket ownership, shutdown deadlines, and retry behavior are documented in `Docs/SessionLifecycle.md`.
+- `DFConnection` now reports startup/polling failures through the coordinator, separates suspended RPC batches from result publication, and starts polling only after content and presentation initialization. The network worker owns its transport; all shutdown paths use cooperative cancellation.
+- `ContentLoader` owns nested enumerators and reports failures/cancellation. Scene managers own disposable registrations. Explicit participant registration fixes the three `ExecuteInEditMode` managers that skipped runtime loading with reloads disabled: both reload modes now initialize five content callbacks.
+- Meshing supports zero, one, and multiple background workers, queue wakeups, cancellation within jobs, and one shared stop deadline. The live regression exercises zero/two/four meshing threads and both polling modes, requires active generated map geometry, checks shaders, and verifies worker completion.
+- All **50 maintained tests passed**: 23 offline lifecycle/transport/mesher checks, 21 texture/cache checks, 4 modern input checks, and 2 live integration tests. The live tests cover three Play sessions, interrupted loading and deliberate retry, then a real socket interruption during polling. All 39 sprite pages still match the original color/normal mip hashes.
+- The isolated checkout passed the 23 lifecycle tests with Unity exit code 0. The separate `FullReloadLive` batch check passed with normal domain and scene reloads enabled, five callbacks, and all workers stopped before domain unload. Its report records an unrelated Unity batch search-index exception separately; application errors remain fatal to validation.
+- New-only input and Built-in rendering settings are unchanged. Logs/reports are under `Logs/Phase2-20260913/` and `TestResults/` and are not checkout dependencies. Third-party transport modifications are recorded in `Docs/ThirdParty.md`.
+- This phase does not claim a player-build verification or finish the editor preview/content-catalog split; those remain in later phases.
 
 ## Phase 3 — Extract focused responsibilities
 

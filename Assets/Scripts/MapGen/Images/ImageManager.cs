@@ -1,4 +1,4 @@
-﻿using RemoteFortressReader;
+using RemoteFortressReader;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 
 [ExecuteInEditMode]
-public class ImageManager : MonoBehaviour
+public class ImageManager : MonoBehaviour, ISessionContentParticipant
 {
     static ImageManager _instance;
     public static ImageManager Instance
@@ -49,7 +49,7 @@ public class ImageManager : MonoBehaviour
             }
             Debug.Log("Loaded images.");
         }
-        else ContentLoader.RegisterLoadCallback(LoadImages);
+        else RegisterSessionContent();
     }
 
     Dictionary<DFHack.DFCoord, MeshRenderer> engravingStore = new Dictionary<DFHack.DFCoord, MeshRenderer>();
@@ -612,4 +612,14 @@ public class ImageManager : MonoBehaviour
     }
 
     #endregion
+    private Armok.Lifecycle.SessionCoordinator registeredSession;
+    public void RegisterSessionContent()
+    {
+        if (!Application.isPlaying || ReferenceEquals(registeredSession, SessionRuntime.Current)) return;
+        sessionRegistration?.Dispose();
+        registeredSession = SessionRuntime.Current;
+        sessionRegistration = ContentLoader.RegisterLoadCallback(LoadImages);
+    }
+    private System.IDisposable sessionRegistration;
+    private void OnDestroy() { sessionRegistration?.Dispose(); }
 }

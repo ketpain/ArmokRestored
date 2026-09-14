@@ -1,4 +1,4 @@
-﻿using RemoteFortressReader;
+using RemoteFortressReader;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityExtension;
@@ -186,7 +186,7 @@ public class WorldMapMaker : MonoBehaviour
     {
         enabled = false;
 
-        DFConnection.RegisterConnectionCallback(this.OnConnectToDF);
+        sessionRegistration = SessionRuntime.Current.OnReady(this.OnConnectToDF);
     }
 
     void OnConnectToDF()
@@ -206,7 +206,7 @@ public class WorldMapMaker : MonoBehaviour
 
     void Update()
     {
-        if (ContentLoader.Instance == null)
+        if (!SessionRuntime.Ready)
             return;
         var tempRegionMaps = DFConnection.Instance.PopRegionMapUpdate();
         var tempWorldMap = DFConnection.Instance.PopWorldMapUpdate();
@@ -535,4 +535,6 @@ public class WorldMapMaker : MonoBehaviour
             original.UpdateClouds(cloudMap);
         return original;
     }
+    private System.IDisposable sessionRegistration;
+    private void OnDestroy() { sessionRegistration?.Dispose(); }
 }

@@ -1,4 +1,5 @@
-﻿using hqx;
+using Armok.Lifecycle;
+using hqx;
 using MaterialStore;
 using System;
 using System.Collections;
@@ -58,7 +59,7 @@ public class ContentLoader : MonoBehaviour
 
     public void Start()
     {
-        DFConnection.RegisterConnectionCallback(Initialize);
+        sessionRegistration = DFConnection.RegisterConnectionCallback(Initialize);
     }
 
     public static ContentLoader Instance { get; private set; }
@@ -102,28 +103,22 @@ public class ContentLoader : MonoBehaviour
         }
     }
 
-    internal static Coroutine StartStaticCoroutine(IEnumerator enumerator)
-    {
-        return _routiner.StartCoroutine(enumerator);
-    }
-
-    static List<Func<IEnumerator>> LoadCallbacks = new List<Func<IEnumerator>>();
+    // Retained for legacy configuration callers; execution is owned by LoadOperation.
+    internal static IEnumerator StartStaticCoroutine(IEnumerator enumerator) => enumerator;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetLoadingState()
+    internal static void ResetForNewScene()
     {
-        // Play Mode can preserve statics. A new load must not invoke delegates
-        // from the previous run or advertise its content as already initialized.
-        LoadCallbacks.Clear();
-        Instance = null;
-        _routiner = null;
+        Instance = null; _routiner = null;
         transparentMaterialVersions.Clear();
     }
 
-    internal static void RegisterLoadCallback(Func<IEnumerator> coroutine)
-    {
-        LoadCallbacks.Add(coroutine);
-    }
+    internal static IDisposable RegisterLoadCallback(Func<IEnumerator> coroutine)
+        => SessionRuntime.Current.OnContent(coroutine);
+
+    private SessionCoordinator session;
+    private LoadOperation loadOperation;
+    private Func<IEnumerator>[] loadCallbacks;
 
     public Texture2DArray PatternTextureArray { get; private set; }
     public float PatternTextureDepth { get; private set; }
@@ -322,13 +317,28 @@ public class ContentLoader : MonoBehaviour
     public void Awake()
     {
         _routiner = this;
+        session = SessionRuntime.Current;
+        session.Changed += PresentLoadingState;
+        SessionRuntime.Stopping += CancelLoading;
+        SessionRuntime.AfterStop(() => { if (ReferenceEquals(Instance, this)) Instance = null; });
+
+        try { PrepareTextures(); }
+        catch (Exception error) { SessionRuntime.Stop(session, error); }
+    }
+
+    private void PrepareTextures()
+    {
 
         shapeTextureStorage = new TextureStorage();
         specialTextureStorage = new TextureStorage();
 
         Debug.Log("Compiling material shape textures.");
         using (new AssetLoadTiming("Read material shape textures"))
-            shapeTextureStorage.AddTextureArray(Resources.Load<Texture2DArray>("shapeTextures"));
+        {
+            var shapes = Resources.Load<Texture2DArray>("shapeTextures");
+            if (shapes == null) throw new InvalidDataException("Generated shape textures are missing. Run Mytools > Validation > Prepare Content.");
+            shapeTextureStorage.AddTextureArray(shapes);
+        }
 
         DefaultShapeTexIndex = shapeTextureStorage.AddTexture(CreateFlatTexture(new Color(1f, 0.5f, 1f, 0.5f)));
         DefaultSpecialTexIndex = specialTextureStorage.AddTexture(Texture2D.blackTexture);
@@ -382,7 +392,41 @@ public class ContentLoader : MonoBehaviour
 
     public void Initialize()
     {
-        StartCoroutine(LoadAssets());
+        if (loadOperation != null) return;
+        loadCallbacks = session.BeginContent();
+        loadOperation = new LoadOperation(LoadAssets(), () => session.IsStopping);
+        StartCoroutine(RunLoad());
+    }
+
+    IEnumerator RunLoad()
+    {
+        while (loadOperation.MoveNext()) yield return loadOperation.Current;
+        if (loadOperation.Failure != null) SessionRuntime.Stop(session, loadOperation.Failure);
+        else if (loadOperation.Completed && !session.IsStopping)
+        {
+            try { session.ContentReady(); }
+            catch (Exception error) { SessionRuntime.Stop(session, error); }
+        }
+    }
+
+    void CancelLoading()
+    {
+        StopAllCoroutines();
+        loadOperation?.Dispose();
+        PresentLoadingState();
+    }
+
+    // Progress presentation is an adapter to the existing serialized bars.
+    // Other UI subscribes to the session, rather than being called by the loader.
+    void PresentLoadingState()
+    {
+        bool loading = session.Stage == SessionStage.LoadingContent;
+        if (mainProgressBar != null)
+        {
+            mainProgressBar.gameObject.SetActive(loading);
+            if (loading) mainProgressBar.SetProgress(session.Progress, session.Message);
+        }
+        if (subProgressBar != null) subProgressBar.gameObject.SetActive(loading);
     }
 
     IEnumerator LoadAssets()
@@ -391,40 +435,37 @@ public class ContentLoader : MonoBehaviour
         mainProgressBar.gameObject.SetActive(true);
         subProgressBar.gameObject.SetActive(true);
         watch.Start();
-        if(GameMap.Instance != null)
-            GameMap.Instance.ShowHelp();
         using (new AssetLoadTiming("Read material patterns"))
             PatternTextureArray = Resources.Load<Texture2DArray>("patternTextures");
+        if (PatternTextureArray == null) throw new InvalidDataException("Generated pattern textures are missing. Run Mytools > Validation > Prepare Content.");
         PatternTextureDepth = PatternTextureArray.depth;
         Shader.SetGlobalTexture("_MatTexArray", PatternTextureArray);
-        float totalItems = LoadCallbacks.Count + 2; //Streaming assets, finalizations, and load callbacks.
+        float totalItems = loadCallbacks.Length + 2; //Streaming assets, finalizations, and load callbacks.
         float doneItems = 0;
-        mainProgressBar.SetProgress(doneItems / totalItems);
+        session.Report("Loading content", doneItems / totalItems);
         using (new AssetLoadTiming("Parse content definitions"))
-            yield return StartCoroutine(ParseContentIndexFile(Application.streamingAssetsPath + "/index.txt"));
+            yield return ParseContentIndexFile(Application.streamingAssetsPath + "/index.txt");
         doneItems++;
-        mainProgressBar.SetProgress(doneItems / totalItems);
-        yield return StartCoroutine(FinalizeTextureAtlases());
+        session.Report("Loading content", doneItems / totalItems);
+        yield return FinalizeTextureAtlases();
         using (new AssetLoadTiming("Match DF materials"))
             MaterialCollection.Init();
-        Instance = this;
 
-        foreach (var callback in LoadCallbacks)
+        foreach (var callback in loadCallbacks)
         {
             doneItems++;
-            mainProgressBar.SetProgress(doneItems / totalItems);
+            session.Report("Loading content", doneItems / totalItems);
             if (callback != null)
                 using (new AssetLoadTiming(callback.Method.DeclaringType.Name + "." + callback.Method.Name))
-                    yield return StartCoroutine(callback());
+                    yield return callback();
         }
+        Instance = this;
         Debug.Log("Done!");
         watch.Stop();
         Debug.LogFormat("Asset loading [Total]: {0:F1} ms", watch.Elapsed.TotalMilliseconds);
         Debug.Log(string.Format("loaded {0} meshes, and {1} shape textures.", MeshContent.NumCreated, shapeTextureStorage.AtlasTexture.depth));
         Debug.Log("Loading Complete. Press ESC to change settings or leave feedback. Have a nice day!");
         Debug.Log("Screen is " + Screen.dpi + "dpi.");
-        if (GameMap.Instance != null)
-            GameMap.Instance.HideHelp();
         DFConnection.Instance.NeedNewBlocks = true;
         mainProgressBar.gameObject.SetActive(false);
         subProgressBar.gameObject.SetActive(false);
@@ -434,7 +475,7 @@ public class ContentLoader : MonoBehaviour
 
     IEnumerator ParseContentIndexFile(string path)
     {
-        mainProgressBar.SetProgress("Loading Index File: " + path);
+        session.Report("Loading Index File: " + path, session.Progress);
 
         string line;
         List<string> fileArray = new List<string>(); //This allows us to parse the file in reverse.
@@ -472,15 +513,16 @@ public class ContentLoader : MonoBehaviour
                 switch (Path.GetExtension(filePath))
                 {
                     case ".txt":
-                        StreamReader mightBeRaw = new StreamReader(filePath);
-                        //first check if it's a DF raw file.
-                        if (mightBeRaw.ReadLine() == Path.GetFileNameWithoutExtension(filePath))
-                            yield return StartCoroutine(ParseContentRawFile(filePath));
+                        bool rawFile;
+                        using (var mightBeRaw = new StreamReader(filePath))
+                            rawFile = mightBeRaw.ReadLine() == Path.GetFileNameWithoutExtension(filePath);
+                        if (rawFile)
+                            yield return ParseContentRawFile(filePath);
                         else
-                            yield return StartCoroutine(ParseContentIndexFile(filePath));
+                            yield return ParseContentIndexFile(filePath);
                         break;
                     case ".xml":
-                        yield return StartCoroutine(ParseContentXMLFile(filePath));
+                        yield return ParseContentXMLFile(filePath);
                         break;
                     default:
                         break;
@@ -501,37 +543,37 @@ public class ContentLoader : MonoBehaviour
                 case "shapeTextures":
                     if (ShapeTextureConfiguration == null)
                         ShapeTextureConfiguration = TileConfiguration<NormalContent>.GetFromRootElement(doc, "shapeTexture");
-                    yield return StartCoroutine(ShapeTextureConfiguration.AddSingleContentConfig(doc, shapeTextureStorage));
+                    yield return ShapeTextureConfiguration.AddSingleContentConfig(doc, shapeTextureStorage);
                     break;
                 case "tileMeshes":
                     if (TileMeshConfiguration == null)
                         TileMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "tileMesh");
-                    yield return StartCoroutine(TileMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage)));
+                    yield return TileMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
                     break;
                 case "materialLayers":
                     if (MaterialLayerConfiguration == null)
                         MaterialLayerConfiguration = TileConfiguration<LayerContent>.GetFromRootElement(doc, "materialLayer");
-                    yield return StartCoroutine(MaterialLayerConfiguration.AddSingleContentConfig(doc));
+                    yield return MaterialLayerConfiguration.AddSingleContentConfig(doc);
                     break;
                 case "growthMeshes":
                     if (GrowthMeshConfiguration == null)
                         GrowthMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "growthMesh");
-                    yield return StartCoroutine(GrowthMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage)));
+                    yield return GrowthMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
                     break;
                 case "designationMeshes":
                     if (DesignationMeshConfiguration == null)
                         DesignationMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "designationMesh");
-                    yield return StartCoroutine(DesignationMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage)));
+                    yield return DesignationMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
                     break;
                 case "collisionMeshes":
                     if (CollisionMeshConfiguration == null)
                         CollisionMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "collisionMesh");
-                    yield return StartCoroutine(CollisionMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage)));
+                    yield return CollisionMeshConfiguration.AddSingleContentConfig(doc, new MeshContent.TextureStorageContainer(null, shapeTextureStorage, specialTextureStorage));
                     break;
                 case "itemMeshes":
                     if (ItemMeshConfiguration == null)
                         ItemMeshConfiguration = TileConfiguration<MeshContent>.GetFromRootElement(doc, "itemMesh");
-                    yield return StartCoroutine(ItemMeshConfiguration.AddSingleContentConfig(doc, null));
+                    yield return ItemMeshConfiguration.AddSingleContentConfig(doc, null);
                     break;
                 default:
                     break;
@@ -543,7 +585,7 @@ public class ContentLoader : MonoBehaviour
 
     IEnumerator ParseContentRawFile(string path)
     {
-        mainProgressBar.SetProgress("Loading Raw File: " + path);
+        session.Report("Loading Raw File: " + path, session.Progress);
         var tokenList = RawLoader.SplitRawFileText(File.ReadAllText(path));
         var tokenEnumerator = tokenList.GetEnumerator();
         try
@@ -555,7 +597,7 @@ public class ContentLoader : MonoBehaviour
                     switch (tokenEnumerator.Current.Parameters[0])
                     {
                         case "GRAPHICS":
-                            yield return StartCoroutine(SpriteManager.ParseGraphics(tokenEnumerator, path));
+                            yield return SpriteManager.ParseGraphics(tokenEnumerator, path);
                             break;
                         default:
                             Debug.Log("Unhandled Token: " + tokenEnumerator.Current.Parameters[0]);
@@ -577,9 +619,10 @@ public class ContentLoader : MonoBehaviour
     {
         foreach (var file in Directory.GetFiles(path, "*.txt", SearchOption.AllDirectories))
         {
-            StreamReader mightBeRaw = new StreamReader(file);
-            //first check if it's a DF raw file.
-            if (mightBeRaw.ReadLine() == Path.GetFileNameWithoutExtension(file))
+            bool rawFile;
+            using (var mightBeRaw = new StreamReader(file))
+                rawFile = mightBeRaw.ReadLine() == Path.GetFileNameWithoutExtension(file);
+            if (rawFile)
                 yield return ParseContentRawFile(file);
         }
         yield return null;
@@ -587,7 +630,7 @@ public class ContentLoader : MonoBehaviour
 
     IEnumerator FinalizeTextureAtlases()
     {
-        mainProgressBar.SetProgress("Compacting textures...");
+        session.Report("Compacting textures...", session.Progress);
         subProgressBar.SetProgress(0.0f / 3.0f, "Building shape textures...");
         yield return null;
         using (new AssetLoadTiming("Build shape texture array"))
@@ -608,10 +651,10 @@ public class ContentLoader : MonoBehaviour
             MaterialManager.Instance.SetTexture("_SpecialTex", specialTextureStorage.AtlasTexture);
             MaterialManager.Instance.SetVector("_TexArrayCount", arrayCount);
         }
-        mainProgressBar.SetProgress("Finalizing low detail creature sprites");
+        session.Report("Finalizing low detail creature sprites", session.Progress);
         SpriteManager.subProgressBar = subProgressBar;
         using (new AssetLoadTiming("Build creature sprites"))
-            yield return StartCoroutine(SpriteManager.FinalizeSprites());
+            yield return SpriteManager.FinalizeSprites();
         //get rid of any un-used textures left over.
         using (new AssetLoadTiming("Request content cleanup"))
         {
@@ -661,5 +704,15 @@ public class ContentLoader : MonoBehaviour
             return transparentMaterialVersions[entityId];
         else
             return material;
+    }
+    private System.IDisposable sessionRegistration;
+    private void OnDestroy()
+    {
+        sessionRegistration?.Dispose();
+        if (session != null) session.Changed -= PresentLoadingState;
+        SessionRuntime.Stopping -= CancelLoading;
+        SessionRuntime.Stop(session);
+        loadOperation?.Dispose();
+        if (_routiner == this) _routiner = null;
     }
 }

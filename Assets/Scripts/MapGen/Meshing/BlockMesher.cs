@@ -1,4 +1,5 @@
-﻿using DFHack;
+using Armok.Lifecycle;
+using DFHack;
 using MaterialStore;
 using RemoteFortressReader;
 using System;
@@ -11,7 +12,19 @@ using UnityEngine;
 // All of the actual meshing code is exactly the same;
 // the only difference is in how it's called.
 
-abstract class BlockMesher {
+abstract class BlockMesher : ISessionWorker {
+    protected volatile bool finished;
+    protected readonly ContentLoader content;
+    protected Exception failure;
+    public abstract bool IsStopped { get; }
+    public virtual void RequestStop()
+    {
+        finished = true;
+        lock (requestQueue) Monitor.PulseAll(requestQueue);
+    }
+    public abstract bool WaitForStop(int milliseconds);
+    protected void CheckCancellation() { if (finished) throw new OperationCanceledException(); }
+
     // If n = 0, single threaded; else multithreaded.
     public static BlockMesher GetMesher (int nThreads) {
         if (nThreads < 0) {
@@ -81,6 +94,7 @@ abstract class BlockMesher {
     protected readonly Stack<MapDataStore> recycledBlocks; // Object pool!
 
     protected BlockMesher() {
+        content = ContentLoader.Instance;
         // Make queues
         requestQueue = new Util.UniqueQueue<DFCoord, Request>();
         recycledBlocks = new Stack<MapDataStore>();
@@ -94,7 +108,11 @@ abstract class BlockMesher {
     public abstract void Poll();
 
     // Does what you'd expect.
-    public abstract void Terminate();
+    public void Terminate()
+    {
+        RequestStop();
+        if (!WaitForStop(500)) Debug.LogWarning("Meshing workers are still stopping.");
+    }
 
     /// <summary>
     /// Gets the status of the current generator
@@ -104,6 +122,7 @@ abstract class BlockMesher {
 
     // Enqueue a block for meshing; inclde 
     public bool Enqueue(DFCoord targetLocation, bool tiles, bool liquids) {
+        if (finished) return false;
         if (!GameMap.IsBlockCorner(targetLocation)) {
             throw new UnityException("Can't enqueue non-block-corners");
         }
@@ -145,6 +164,7 @@ abstract class BlockMesher {
             meshRequest.tiles   = tiles   || redundant.tiles;
             meshRequest.data    = targetDataStore;
             requestQueue.EnqueueAndDisplace(targetLocation, meshRequest);
+            Monitor.Pulse(requestQueue);
         }
         if (redundant.data != null) {
             lock (recycledBlocks) {
@@ -212,6 +232,7 @@ abstract class BlockMesher {
 
     protected Result CreateMeshes(Request request)
     {
+        CheckCancellation();
         Result result = new Result();
         result.location = request.data.SliceOrigin;
         if (request.liquids)
@@ -254,10 +275,12 @@ abstract class BlockMesher {
         for (int xx = 0; xx <= GameMap.blockSize; xx++)
             for (int yy = 0; yy <= GameMap.blockSize; yy++)
             {
+                CheckCancellation();
                 //first find the heights of all tiles sharing one corner.
                 for (int xxx = 0; xxx < 2; xxx++)
                     for (int yyy = 0; yyy < 2; yyy++)
                     {
+                CheckCancellation();
                         int x = (block_x * GameMap.blockSize) + xx + xxx - 1;
                         int y = (block_y * GameMap.blockSize) + yy + yyy - 1;
                         if (x < 0 || y < 0 || x >= MapDataStore.MapSize.x || y >= MapDataStore.MapSize.y)
@@ -324,6 +347,7 @@ abstract class BlockMesher {
         for (int xx = 0; xx < GameMap.blockSize; xx++)
             for (int yy = 0; yy < GameMap.blockSize; yy++)
             {
+                CheckCancellation();
                 if (data.GetLiquidLevel(
                         new DFCoord((block_x * GameMap.blockSize) + xx, (block_y * GameMap.blockSize) + yy, block_z),
                         liquid_select) == 0) {
@@ -377,6 +401,7 @@ abstract class BlockMesher {
             for (int xx = (block_x * GameMap.blockSize); xx < (block_x + 1) * GameMap.blockSize; xx++)
                 for (int yy = (block_y * GameMap.blockSize); yy < (block_y + 1) * GameMap.blockSize; yy++)
                 {
+                CheckCancellation();
                     if (!data.InSliceBounds(new DFCoord(xx, yy, block_z))) throw new UnityException("OOB");
                     if (data[xx, yy, block_z] == null) continue;
 
@@ -470,7 +495,7 @@ abstract class BlockMesher {
         buffer.color = Color.grey;
         if (layer == MeshLayer.Collision)
         {
-            if (!ContentLoader.Instance.CollisionMeshConfiguration.GetValue(tile, layer, out meshContent))
+            if (!content.CollisionMeshConfiguration.GetValue(tile, layer, out meshContent))
             {
                 buffer.meshData = null;
                 return;
@@ -488,7 +513,7 @@ abstract class BlockMesher {
             buffer.hiddenFaces = CalculateHiddenFaces(tile, meshContent.Rotation);
             return;
         }
-        if (ContentLoader.Instance.DesignationMeshConfiguration.GetValue(tile, layer, out meshContent))
+        if (content.DesignationMeshConfiguration.GetValue(tile, layer, out meshContent))
         {
             if (!meshContent.MeshData.ContainsKey(layer))
             {
@@ -503,11 +528,11 @@ abstract class BlockMesher {
             if (meshContent.ShapeTexture != null)
                 index1.y = meshContent.ShapeTexture.StorageIndex;
             else
-                index1.y = ContentLoader.Instance.DefaultShapeTexIndex;
+                index1.y = content.DefaultShapeTexIndex;
             if (meshContent.SpecialTexture != null)
                 index2.x = meshContent.SpecialTexture.ArrayIndex;
             else
-                index2.x = ContentLoader.Instance.DefaultSpecialTexIndex;
+                index2.x = content.DefaultSpecialTexIndex;
 
             buffer.uv1Transform = Matrix4x4.identity;
             buffer.uv2Force = index1;
@@ -566,7 +591,7 @@ abstract class BlockMesher {
                         case TiletypeMaterial.ROOT:
                         case TiletypeMaterial.TREE_MATERIAL:
                         case TiletypeMaterial.MUSHROOM:
-                            if (!ContentLoader.Instance.GrowthMeshConfiguration.GetValue(tile, layer, out meshContent))
+                            if (!content.GrowthMeshConfiguration.GetValue(tile, layer, out meshContent))
                             {
                                 buffer.meshData = null;
                                 return;
@@ -595,7 +620,7 @@ abstract class BlockMesher {
                         buffer.meshData = null;
                         return;
                     }
-                    if (!ContentLoader.Instance.TileMeshConfiguration.GetValue(tile, layer, out meshContent))
+                    if (!content.TileMeshConfiguration.GetValue(tile, layer, out meshContent))
                     {
                         buffer.meshData = null;
                         return;
@@ -640,13 +665,13 @@ abstract class BlockMesher {
         }
         buffer.meshData = meshContent.MeshData[layer];
         buffer.transform = Matrix4x4.TRS(pos, meshContent.GetRotation(tile), Vector3.one);
-        Matrix4x4 shapeTextTransform = ContentLoader.Instance.DefaultShapeTexTransform;
+        Matrix4x4 shapeTextTransform = content.DefaultShapeTexTransform;
         Matrix4x4 specialTexTransform = Matrix4x4.identity;
 
         NormalContent tileTexContent;
         if (meshContent.ShapeTexture == null)
         {
-            if (ContentLoader.Instance.ShapeTextureConfiguration.GetValue(tile, layer, out tileTexContent))
+            if (content.ShapeTextureConfiguration.GetValue(tile, layer, out tileTexContent))
             {
                 shapeTextTransform = tileTexContent.UVTransform;
                 index1.y = tileTexContent.StorageIndex;
@@ -669,8 +694,8 @@ abstract class BlockMesher {
         }
         else
         {
-            specialTexTransform = ContentLoader.Instance.DefaultSpecialTexTransform;
-            index2.x = ContentLoader.Instance.DefaultSpecialTexIndex;
+            specialTexTransform = content.DefaultSpecialTexTransform;
+            index2.x = content.DefaultSpecialTexIndex;
         }
 
         buffer.color = matColor;
@@ -717,8 +742,7 @@ sealed class SingleThreadedMesher : BlockMesher {
 
     public override void Poll()
     {
-        if (ContentLoader.Instance == null)
-            return;
+        if (finished || content == null) return;
         StatsReadout.QueueLength = requestQueue.Count;
         if (requestQueue.Count == 0) return;
         Request req = requestQueue.Dequeue();
@@ -733,136 +757,79 @@ sealed class SingleThreadedMesher : BlockMesher {
         return "Single threaded.";
     }
 
-    public override void Terminate() {}
+    public override bool IsStopped => true;
+    public override bool WaitForStop(int milliseconds) => true;
 }
 
 // Now we're cooking with charcoal.
 sealed class MultiThreadedMesher : BlockMesher {
-    private static readonly System.TimeSpan SLEEP_TIME = System.TimeSpan.FromMilliseconds(16);
-
-    private volatile bool finished;
     private readonly Thread[] threads;
+    private long averageTicks;
 
-    public MultiThreadedMesher(int nThreads = 1) {
-        finished = false;
+    public MultiThreadedMesher(int nThreads = 1)
+    {
         threads = new Thread[nThreads];
-
-        for (int i = 0; i < nThreads; i++) {
-            threads[i] = new Thread(new ThreadStart(MeshForever));
+        for (int i = 0; i < nThreads; i++)
+        {
+            threads[i] = new Thread(MeshForever) { IsBackground = true, Name = "Armok meshing " + i };
             threads[i].Start();
         }
     }
 
-    public override void Poll() {
-        if (finished) {
-            Debug.Log ("Polling after completion");
-        }
-    }
+    public override bool IsStopped => Array.TrueForAll(threads, thread => !thread.IsAlive);
 
-    public override void Terminate() {
-        finished = true;
-        foreach (var item in threads)
-        {
-            if (item != null)
-            {
-                if (!item.Join(1000))
-                {
-                    Debug.Log("Thread failed to join in time, attempting to kill it.");
-                    item.Abort(); //we asked nicely.
-                }
-            }
-        }
-    }
-
-    // The actual computation
-    public void MeshForever()
+    public override bool WaitForStop(int milliseconds)
     {
-        InitBuffers();
-        long[] times = new long[10];
-        int index = 0;
-        System.Diagnostics.Stopwatch watch;
-        // Loop forever
-        while (!finished)
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        bool stopped = true;
+        foreach (var thread in threads)
+            stopped &= thread.Join(Math.Max(0, milliseconds - (int)watch.ElapsedMilliseconds));
+        return stopped;
+    }
+
+    public override void Poll()
+    {
+        var error = Volatile.Read(ref failure);
+        if (error != null) { SessionRuntime.Stop(SessionRuntime.Current, error); return; }
+        lock (requestQueue) StatsReadout.QueueLength = requestQueue.Count;
+        StatsReadout.BlockProcessTime = TimeSpan.FromSeconds(
+            Interlocked.Read(ref averageTicks) / (double)System.Diagnostics.Stopwatch.Frequency);
+    }
+
+    private void MeshForever()
+    {
+        try
         {
-            try
+            InitBuffers();
+            while (!finished)
             {
-                if (ContentLoader.Instance == null)
+                Request work;
+                lock (requestQueue)
                 {
-                    //If there's nothing loaded yet, don't do anything.
-                    Thread.Sleep(SLEEP_TIME);
-                    continue;
+                    while (!finished && requestQueue.Count == 0) Monitor.Wait(requestQueue);
+                    if (finished) return;
+                    work = requestQueue.Dequeue();
                 }
-                Request? maybeWorkItem;
-                // Check for an item
-                if (Monitor.TryEnter(requestQueue, 1000))
-                {
-                    try
-                    {
-                        if (requestQueue.Count > 0)
-                        {
-                            maybeWorkItem = requestQueue.Dequeue();
-                        }
-                        else
-                        {
-                            maybeWorkItem = null;
-                        }
-                        StatsReadout.QueueLength = requestQueue.Count;
-                    }
-                    finally
-                    {
-                        Monitor.Exit(requestQueue);
-                    }
-                }
-                else
-                {
-                    maybeWorkItem = null;
-                    Debug.Log("Meshing thread timed out getting a lock on the task queue");
-                }
-                if (!maybeWorkItem.HasValue)
-                {
-                    // Wait a bit; TODO tune SLEEP_TIME
-                    Thread.Sleep(SLEEP_TIME);
-                    continue;
-                }
-                // We've got something to do!
-                Request workItem = maybeWorkItem.Value;
-                watch = System.Diagnostics.Stopwatch.StartNew();
-                Result result = CreateMeshes(workItem);
-                watch.Stop();
-                times[index] = watch.ElapsedTicks;
-                index++;
-                if (index >= times.Length)
-                    index = 0;
-                long average = 0;
-                foreach (long item in times)
-                {
-                    average += item;
-                }
-                average /= times.Length;
-                StatsReadout.BlockProcessTime = new System.TimeSpan(average);
-                lock (resultQueue)
-                {
-                    resultQueue.Enqueue(result);
-                }
-                lock (recycledBlocks)
-                {
-                    recycledBlocks.Push(workItem.data);
-                }
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                Result result = CreateMeshes(work);
+                CheckCancellation();
+                Interlocked.Exchange(ref averageTicks, watch.ElapsedTicks);
+                lock (resultQueue) { if (!finished) resultQueue.Enqueue(result); }
+                lock (recycledBlocks) recycledBlocks.Push(work.data);
             }
-            catch(Exception e)
-            {
-                Debug.LogException(e);
-            }
+        }
+        catch (OperationCanceledException) when (finished) { }
+        catch (Exception error)
+        {
+            Volatile.Write(ref failure, error);
+            RequestStop();
         }
     }
 
     public override string Status()
     {
-        StringBuilder sb = new StringBuilder();
-        for(int i = 0; i < threads.Length; i++)
-        {
-            sb.Append("Thread ").Append(i).Append(": ").Append(threads[i] == null ? "NULL" : threads[i].ThreadState.ToString()).AppendLine();
-        }
-        return sb.ToString();
+        var result = new StringBuilder();
+        foreach (var thread in threads) result.Append(thread.Name).Append(": ").AppendLine(thread.ThreadState.ToString());
+        return result.ToString();
     }
 }

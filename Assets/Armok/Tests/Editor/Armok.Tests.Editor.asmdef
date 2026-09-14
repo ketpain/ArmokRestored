@@ -1,6 +1,6 @@
 {
     "name": "Armok.Tests.Editor",
-    "references": ["UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+    "references": ["Armok.Lifecycle", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
     "includePlatforms": ["Editor"],
     "overrideReferences": true,
     "precompiledReferences": ["nunit.framework.dll"],

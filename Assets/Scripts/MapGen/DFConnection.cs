@@ -1,3 +1,4 @@
+using Armok.Lifecycle;
 using AdventureControl;
 using DFHack;
 using dfproto;
@@ -22,7 +23,12 @@ public sealed class DFConnection : MonoBehaviour
     // Singleton stuff
 
     private static DFConnection instance = null;
-    private static List<Action> connectionCallbacks = new List<Action>();
+    private SessionCoordinator session;
+    private PollingWorker connectionWorker;
+    private bool pollingStarted;
+    private volatile bool pollingStopping;
+    private float previousPoll;
+    public SessionCoordinator Session => session;
     public static DFConnection Instance
     {
         get
@@ -42,9 +48,9 @@ public sealed class DFConnection : MonoBehaviour
     }
 
     // Can be called before instance is initialized.
-    public static void RegisterConnectionCallback(Action callback)
+    public static IDisposable RegisterConnectionCallback(Action callback)
     {
-        connectionCallbacks.Add(callback);
+        return SessionRuntime.Current.OnDefinitions(callback);
     }
 
     // Instance stuff
@@ -55,7 +61,15 @@ public sealed class DFConnection : MonoBehaviour
     public float refreshDelay = 1;
 
     // Thread management
-    private ConnectionManager connectionManager;
+    private sealed class PollingClient : IConnectionOperations
+    {
+        private readonly RemoteClient client;
+        private readonly Action poll;
+        public PollingClient(RemoteClient client, Action poll) { this.client = client; this.poll = poll; }
+        public void Poll() => poll();
+        public void Interrupt() => client.Interrupt();
+        public void Close() => client.Disconnect();
+    }
 
     #region RPC Bindings
 
@@ -503,21 +517,26 @@ public sealed class DFConnection : MonoBehaviour
     /// </summary>
     void Connect()
     {
+        try { session.BeginConnect(); ConnectCore(); }
+        catch (Exception error) { SessionRuntime.Stop(session, error); }
+    }
+
+    void ConnectCore()
+    {
         blockRequest.blocks_needed = BlocksToFetch;
         networkClient = new RemoteClient(dfNetworkOut);
-        bool success = networkClient.Connect(GameSettings.Instance.game.serverAddress, GameSettings.Instance.game.serverPort);
-        if (!success)
+        var ownedClient = networkClient;
+        SessionRuntime.AfterStop(() =>
         {
-            networkClient.Disconnect();
-            networkClient = null;
-            ModalPanel.Instance.Choice(
-                "Armok Vision could not find a running instance of Dwarf Fortress!\n\n" +
-                "Please make sure you have Dwarf Fortress running, with the latest version of DFHack installed.", Connect, QuitGame, "Retry", "Quit");
-            throw new UnityException("DF Connection Failure");
-        }
+            ownedClient.Interrupt();
+            if (ReferenceEquals(networkClient, ownedClient)) networkClient = null;
+        });
+        bool success = networkClient.Connect(GameSettings.Instance.game.serverAddress, GameSettings.Instance.game.serverPort);
+        if (!success) throw new IOException("Could not connect to Dwarf Fortress.");
 
         BindStaticMethods();
 
+        if (dfWorldInfoCall == null) throw new IOException("Required DF world-info RPC is unavailable.");
         if (dfWorldInfoCall != null)
         {
             dfWorldInfoCall.TryExecute(null, out netWorldInfo);
@@ -539,6 +558,12 @@ public sealed class DFConnection : MonoBehaviour
 
     void RunPluginCheck()
     {
+        try { RunPluginCheckCore(); }
+        catch (Exception error) { SessionRuntime.Stop(session, error); }
+    }
+
+    void RunPluginCheckCore()
+    {
         if (GameSettings.Instance.game.askToUpdatePlugin)
         {
             CheckPlugin();
@@ -555,6 +580,13 @@ public sealed class DFConnection : MonoBehaviour
     /// Register AV-specific functions, and get things rolling.
     /// </summary>
     void Init()
+    {
+        if (session.Stage != SessionStage.Connecting) return;
+        try { InitCore(); }
+        catch (Exception error) { SessionRuntime.Stop(session, error); }
+    }
+
+    void InitCore()
     {
         if (inited)
             return;
@@ -601,7 +633,18 @@ public sealed class DFConnection : MonoBehaviour
 
         // Get some initial stuff
         // Necessary for initialization, apparently.
-        networkClient.SuspendGame();
+        SuspendedOperation.Run(networkClient.SuspendGame, networkClient.ResumeGame, networkClient.Interrupt, ReadInitialState);
+
+        if (mapResetCall != null)
+            mapResetCall.TryExecute();
+        InitStatics();
+
+        session.DefinitionsReady();
+        _actuallyConnected = true;
+    }
+
+    private void ReadInitialState()
+    {
         if (viewInfoCall != null)
         {
             ViewInfo viewInfo;
@@ -636,28 +679,6 @@ public sealed class DFConnection : MonoBehaviour
             regionMapCall.TryExecute(null, out regionMaps);
             netRegionMaps.Set(regionMaps);
         }
-        networkClient.ResumeGame();
-
-        if (mapResetCall != null)
-            mapResetCall.TryExecute();
-        InitStatics();
-
-        foreach (Action callback in connectionCallbacks)
-        {
-            callback.Invoke();
-        }
-
-        connectionCallbacks.Clear();
-
-        if (RunOnAlternateThread)
-        {
-            connectionManager = new ConnectionManager.AltThread(this);
-        }
-        else
-        {
-            connectionManager = new ConnectionManager.UnityThread(this);
-        }
-        _actuallyConnected = true;
     }
 
     string _dfhackPluginDir;
@@ -782,12 +803,8 @@ public sealed class DFConnection : MonoBehaviour
 
     void Disconnect()
     {
-        instance = null;
-        if (connectionManager != null)
-        {
-            connectionManager.Terminate();
-            connectionManager = null;
-        }
+        SessionRuntime.Stop(session);
+        if (instance == this) { _actuallyConnected = false; instance = null; }
     }
 
     /// <summary>
@@ -924,41 +941,54 @@ public sealed class DFConnection : MonoBehaviour
 
     private void Awake()
     {
-        if (instance != null && instance != this)
-            DestroyImmediate(this);
+        if (instance != null && instance != this) { Destroy(this); return; }
         instance = this;
+        session = SessionRuntime.Current;
+        _actuallyConnected = false;
+        SessionRuntime.Stopping += StopPolling;
     }
 
-    void Start()
+    void StopPolling()
     {
-        try
-        {
-            Connect();
-        }
-        catch (UnityException e)
-        {
-            Debug.LogException(e);
-        }
-
+        pollingStopping = true;
+        if (ReferenceEquals(session, SessionRuntime.Current)) _actuallyConnected = false;
     }
+    void Start() { if (instance == this) Connect(); }
 
     void Update()
     {
-        if (!Connected)
+        if (!Connected) return;
+        try
         {
-            return;
+            session.Dispatch();
+            if (!session.IsReady) return;
+            if (!pollingStarted)
+            {
+                pollingStarted = true;
+                if (RunOnAlternateThread)
+                {
+                    connectionWorker = new PollingWorker(new PollingClient(networkClient, PerformSingleUpdate),
+                        (int)(refreshDelay * 1000));
+                    SessionRuntime.Own(connectionWorker);
+                }
+            }
+            if (connectionWorker != null)
+            {
+                if (connectionWorker.Failure != null) throw new DFRemoteException(connectionWorker.Failure);
+            }
+            else if (Time.realtimeSinceStartup - previousPoll >= refreshDelay)
+            {
+                previousPoll = Time.realtimeSinceStartup;
+                PerformSingleUpdate();
+            }
         }
-        foreach (System.Action callback in connectionCallbacks)
-        {
-            callback.Invoke();
-        }
-        connectionCallbacks.Clear();
-        connectionManager.Poll();
+        catch (Exception error) { SessionRuntime.Stop(session, error); }
     }
 
     // OnGUI is called for rendering and handling GUI events
     public void OnGUI()
     {
+        if (!Connected) return;
         if (GameSettings.Instance.game.showDFScreen)
         {
             Event e = Event.current;
@@ -1012,6 +1042,7 @@ public sealed class DFConnection : MonoBehaviour
 
     void OnDestroy()
     {
+        SessionRuntime.Stopping -= StopPolling;
         Disconnect();
     }
 
@@ -1042,16 +1073,35 @@ public sealed class DFConnection : MonoBehaviour
     /// <exception cref="System.Exception"></exception>
     void PerformSingleUpdate()
     {
-        //pause df here, so it doesn't try to resume while we're working.
-        networkClient.SuspendGame();
+        BlockList resultList = null;
+        SuspendedOperation.Run(networkClient.SuspendGame, networkClient.ResumeGame, networkClient.Interrupt,
+            () => resultList = PollSuspended());
+
+        if (resultList != null && !pollingStopping)
+        {
+            foreach (MapBlock mapBlock in resultList.map_blocks)
+            {
+                if (pollingStopping) return;
+                pendingBlocks.Enqueue(mapBlock);
+            }
+            engravings.Enqueue(resultList.engravings);
+
+            waves = resultList.ocean_waves;
+            UpdatedAnyBlocks = true;
+        }
+    }
+
+    // Only RPCs run inside suspension; publishing results happens after resume.
+    private BlockList PollSuspended()
+    {
+        BlockList resultList = null;
 
         if(gameValidityCall != null)
         {
             var valid = gameValidityCall.Execute();
             if(!valid.Value)
             {
-                networkClient.ResumeGame();
-                return;
+                return null;
             }
         }
 
@@ -1267,7 +1317,6 @@ public sealed class DFConnection : MonoBehaviour
         }
 
         // since enqueueing results can block, we do it after we've unsuspended df
-        BlockList resultList = null;
         if (fetchMap)
         {
             if (EmbarkMapSize.x > 0
@@ -1295,32 +1344,7 @@ public sealed class DFConnection : MonoBehaviour
         }
         #endregion
 
-        //All communication with DF should be before this.
-        networkClient.ResumeGame();
-
-        if (resultList != null)
-        {
-            try
-            {
-                foreach (MapBlock mapBlock in resultList.map_blocks)
-                {
-                    pendingBlocks.Enqueue(mapBlock);
-                }
-                engravings.Enqueue(resultList.engravings);
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-            }
-
-            waves = resultList.ocean_waves;
-            UpdatedAnyBlocks = true;
-        }
-    }
-
-    internal void ResumeGame()
-    {
-        networkClient.ResumeGame();
+        return resultList;
     }
 
     /// <summary>
@@ -1328,136 +1352,8 @@ public sealed class DFConnection : MonoBehaviour
     /// </summary>
     public sealed class DFRemoteException : System.Exception
     {
-        public DFRemoteException(System.Exception inner) : base("Remote exception!", inner)
+        public DFRemoteException(System.Exception inner) : base("DF polling failed: " + inner.Message, inner)
         { }
     }
 
-    /// <summary>
-    /// Manages polling df.
-    /// </summary>
-    private abstract class ConnectionManager
-    {
-        protected readonly DFConnection connection;
-
-        /// <summary>
-        /// Used by base classes.
-        /// </summary>
-        /// <param name="connection">Connection.</param>
-        protected ConnectionManager(DFConnection connection)
-        {
-            this.connection = connection;
-        }
-
-        /// <summary>
-        /// Check for updates and exceptions.
-        /// </summary>
-        /// <exception cref="DFRemoteException">If communication with the remote failed.</exception>
-        public abstract void Poll();
-
-        /// <summary>
-        /// Terminate this instance.
-        /// </summary>
-        public abstract void Terminate();
-
-
-        // IMPLEMENTATIONS
-
-
-        /// <summary>
-        /// Polls on the main unity thread.
-        /// </summary>
-        public sealed class UnityThread : ConnectionManager
-        {
-            private float prevTime;
-
-            public UnityThread(DFConnection connection) : base(connection)
-            { }
-
-            public override void Poll()
-            {
-                if (Time.realtimeSinceStartup - prevTime < Instance.refreshDelay)
-                    return;
-                prevTime = Time.realtimeSinceStartup;
-                if (ContentLoader.Instance != null)
-                {
-                    try
-                    {
-                        connection.PerformSingleUpdate();
-                    }
-                    catch (System.Exception e)
-                    {
-                        throw new DFRemoteException(e);
-                    }
-                }
-            }
-
-            public override void Terminate()
-            {
-                connection.networkClient.Disconnect();
-                connection.networkClient = null;
-            }
-        }
-
-        /// <summary>
-        /// Polls on an alternate thread.
-        /// </summary>
-        public sealed class AltThread : ConnectionManager
-        {
-            /// Use to terminate computation thread
-            private volatile bool finished;
-            /// Said thread
-            private readonly Thread connectionThread;
-            /// Catch errors on the throwing thread and throw them on the main thread
-            private SingleBuffer<System.Exception> crashError;
-
-            public AltThread(DFConnection connection)
-                : base(connection)
-            {
-                finished = false;
-                connectionThread = new Thread(new ThreadStart(this.RunForever));
-                connectionThread.Start();
-            }
-
-            public override void Poll()
-            {
-                System.Exception error = crashError.Pop();
-                if (error != null)
-                {
-                    throw new DFRemoteException(error);
-                }
-            }
-
-            public override void Terminate()
-            {
-                finished = true;
-                if (!connectionThread.Join(1000))
-                    connectionThread.Abort();//we asked nicely once.
-            }
-
-            private void RunForever()
-            {
-                while (!finished)
-                {
-                    if (ContentLoader.Instance != null)
-                    {
-                        try
-                        {
-                            connection.PerformSingleUpdate();
-                        }
-                        catch (System.Exception e)
-                        {
-                            crashError.Set(e);
-                            connection.ResumeGame();
-                            return;
-                        }
-                    }
-                    // The global Instance may be cleared while Play Mode exits.
-                    Thread.Sleep((int)(connection.refreshDelay * 1000));
-                }
-                // finished
-                connection.networkClient.Disconnect();
-                connection.networkClient = null;
-            }
-        }
-    }
 }

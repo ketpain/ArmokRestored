@@ -1,3 +1,4 @@
+// Locally altered: transport failures are fatal, socket ownership is stable per RPC.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -62,8 +63,14 @@ namespace DFHack
             buffer.AddRange(msg.ToArray());
 
             int fullsz = buffer.Count;
-            int got = socket.Send(buffer.ToArray());
-            return (got == fullsz);
+            byte[] bytes = buffer.ToArray();
+            for (int sent = 0; sent < fullsz;)
+            {
+                int count = socket.Send(bytes, sent, fullsz - sent, SocketFlags.None);
+                if (count <= 0) return false;
+                sent += count;
+            }
+            return true;
         }
 
         protected TOutput Execute<TInput, TOutput>(IDFStream stream, TInput input)
@@ -75,7 +82,7 @@ namespace DFHack
             if (result == CommandResult.CrOk)
                 return value;
             else
-                throw new InvalidOperationException("Remotefunction encountered error: " + value);
+                throw new InvalidOperationException("DF RPC " + Proto + "::" + Name + " failed: " + result);
         }
 
         protected CommandResult TryExecute<TInput, TOutput>(IDFStream outString, TInput input, out TOutput output)
@@ -90,15 +97,16 @@ namespace DFHack
                 return CommandResult.CrNotImplemented;
             }
 
-            if (PClient.Socket == null)
+            var socket = PClient.Socket;
+            if (socket == null)
             {
                 outString.PrintErr("In call to %s::%s: invalid socket.\n",
                     Proto, Name);
                 output = default(TOutput);
-                return CommandResult.CrLinkFailure;
+                throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
             }
 
-            MemoryStream sendStream = new MemoryStream();
+            using var sendStream = new MemoryStream();
 
             Serializer.Serialize(sendStream, input);
 
@@ -109,15 +117,15 @@ namespace DFHack
                 outString.PrintErr("In call to %s::%s: message too large: %d.\n",
                     Proto, Name, sendSize);
                 output = default(TOutput);
-                return CommandResult.CrLinkFailure;
+                throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
             }
 
-            if (!SendRemoteMessage(PClient.Socket, Id, sendStream))
+            if (!SendRemoteMessage(socket, Id, sendStream))
             {
                 outString.PrintErr("In call to %s::%s: I/O error in send.\n",
                     Proto, Name);
                 output = default(TOutput);
-                return CommandResult.CrLinkFailure;
+                throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
             }
 
             ColorOstreamProxy textDecoder = new ColorOstreamProxy(outString);
@@ -130,12 +138,12 @@ namespace DFHack
                 RpcMessageHeader header = new RpcMessageHeader();
                 byte[] buffer = new byte[8];
 
-                if (!RemoteClient.ReadFullBuffer(PClient.Socket, buffer, 8))
+                if (!RemoteClient.ReadFullBuffer(socket, buffer, 8))
                 {
                     outString.PrintErr("In call to %s::%s: I/O error in receive header.\n",
                         Proto, Name);
                     output = default(TOutput);
-                    return CommandResult.CrLinkFailure;
+                    throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
                 }
 
                 header.Id = BitConverter.ToInt16(buffer, 0);
@@ -149,6 +157,8 @@ namespace DFHack
                     output = default(TOutput);
                     if (header.Size == (int)CommandResult.CrOk)
                         return CommandResult.CrFailure;
+                    else if (header.Size == (int)CommandResult.CrLinkFailure)
+                        throw new IOException("DF peer reported a broken RPC connection: " + Name);
                     else
                         return (CommandResult)header.Size;
                 }
@@ -158,16 +168,16 @@ namespace DFHack
                     outString.PrintErr("In call to %s::%s: invalid received size %d.\n",
                         Proto, Name, header.Size);
                     output = default(TOutput);
-                    return CommandResult.CrLinkFailure;
+                    throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
                 }
 
                 byte[] buf = new byte[header.Size];
-                if (!RemoteClient.ReadFullBuffer(PClient.Socket, buf, header.Size))
+                if (!RemoteClient.ReadFullBuffer(socket, buf, header.Size))
                 {
                     outString.PrintErr("In call to %s::%s: I/O error in receive %d bytes of data.\n",
                         Proto, Name, header.Size);
                     output = default(TOutput);
-                    return CommandResult.CrLinkFailure;
+                    throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
                 }
 
                 switch ((DfHackReplyCode)header.Id)
@@ -177,7 +187,7 @@ namespace DFHack
                         if (output != null) return CommandResult.CrOk;
                         outString.PrintErr("In call to %s::%s: error parsing received result.\n",
                             Proto, Name);
-                        return CommandResult.CrLinkFailure;
+                        throw new IOException("DF RPC transport failed: " + Proto + "::" + Name);
 
                     case DfHackReplyCode.RpcReplyText:
                         var textData = Serializer.Deserialize<CoreTextNotification>(new MemoryStream(buf));

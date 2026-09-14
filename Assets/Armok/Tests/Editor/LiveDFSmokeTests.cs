@@ -15,6 +15,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
+using Armok.Lifecycle;
 
 // A separate namespace/category keeps live DF checks out of the default offline filter.
 namespace Armok.LiveTests
@@ -28,6 +29,7 @@ namespace Armok.LiveTests
         private EnterPlayModeOptions reloadOptions;
         private bool runInBackground;
         private int completedLoads;
+        private int? originalMeshThreads;
         private readonly List<string> messages = new List<string>();
         private readonly List<Thread> workers = new List<Thread>();
 
@@ -60,6 +62,7 @@ namespace Armok.LiveTests
         public IEnumerator TearDown()
         {
             if (sceneSetup == null) yield break;
+            RestoreMeshingSettings();
             if (EditorApplication.isPlaying) yield return new ExitPlayMode();
             Application.logMessageReceived -= CaptureLog;
             EditorApplication.update -= Pump;
@@ -98,20 +101,25 @@ namespace Armok.LiveTests
             for (int iteration = 1; iteration <= 3; iteration++)
             {
                 yield return new EnterPlayMode(false);
+                ConfigureWorkers(iteration != 2, iteration == 2 ? 0 : iteration == 3 ? 2 : 4);
                 double deadline = EditorApplication.timeSinceStartup + 180;
                 while (completedLoads < iteration && EditorApplication.timeSinceStartup < deadline) yield return null;
                 Assert.That(completedLoads, Is.EqualTo(iteration), "Each Play session must finish exactly one content load.");
                 Assert.That(Singleton("ContentLoader") as Object, Is.Not.Null);
                 Assert.That((bool)LegacyType("DFConnection").GetProperty("Connected").GetValue(null), Is.True);
 
-                var callbacks = (IList)LegacyType("ContentLoader").GetField("LoadCallbacks", Fields).GetValue(null);
-                Assert.That(callbacks.Cast<Delegate>().Distinct().Count(), Is.EqualTo(callbacks.Count), "Duplicate loading callback.");
-                if (firstCallbackCount < 0) firstCallbackCount = callbacks.Count;
-                Assert.That(callbacks.Count, Is.EqualTo(firstCallbackCount), "Callback registrations grew between sessions.");
-                CaptureWorkers();
+                var session = (SessionCoordinator)LegacyType("SessionRuntime").GetProperty("Current").GetValue(null);
+                Assert.That(session.Stage, Is.EqualTo(SessionStage.Ready));
+                int callbackCount = session.ContentCallbackCount;
+                if (firstCallbackCount < 0) firstCallbackCount = callbackCount;
+                Assert.That(callbackCount, Is.EqualTo(firstCallbackCount), "Callback registrations grew between sessions.");
 
                 // Allow some map rendering after content completion before checking shaders.
                 for (int frame = 0; frame < 10; frame++) yield return null;
+                deadline = EditorApplication.timeSinceStartup + 30;
+                while (!HasMapGeometry() && session.IsReady && EditorApplication.timeSinceStartup < deadline) yield return null;
+                Assert.That(HasMapGeometry(), Is.True, "The session reached Ready but produced no active map geometry.");
+                CaptureWorkers();
                 string sprites = SpriteHashes();
                 Assert.That(sprites, Is.Not.Empty, "The live fixture did not produce creature pages.");
                 if (firstSprites == null) firstSprites = sprites;
@@ -125,14 +133,69 @@ namespace Armok.LiveTests
                     Assert.That(ShaderUtil.ShaderHasError(shader), Is.False, shader.name);
                 }
 
+                RestoreMeshingSettings();
                 yield return new ExitPlayMode();
                 deadline = EditorApplication.timeSinceStartup + 5;
                 while (workers.Any(worker => worker.IsAlive) && EditorApplication.timeSinceStartup < deadline) yield return null;
                 Assert.That(workers.Any(worker => worker.IsAlive), Is.False, "A session worker survived exiting Play Mode.");
                 Assert.That((bool)LegacyType("DFConnection").GetProperty("Connected").GetValue(null), Is.False);
-                messages.Add($"Session {iteration}: callbacks={callbacks.Count}; all captured workers stopped.");
+                Assert.That(session.Stage, Is.EqualTo(SessionStage.Disconnected));
+                Assert.That(session.ContentCallbackCount, Is.Zero);
+                messages.Add($"Session {iteration}: callbacks={callbackCount}; all captured workers stopped.");
                 workers.Clear();
             }
+        }
+
+        [UnityTest]
+        public IEnumerator InterruptedLoadCanRetryAndPollingFailureCanStopTheNewSession()
+        {
+            EditorSceneManager.OpenScene("Assets/Scenes/Map Mode.unity", OpenSceneMode.Single);
+            yield return new EnterPlayMode(false);
+            var oldSession = (SessionCoordinator)LegacyType("SessionRuntime").GetProperty("Current").GetValue(null);
+            Assert.That(oldSession.Stage, Is.EqualTo(SessionStage.LoadingContent));
+            Assert.That(Singleton("ContentLoader") as Object, Is.Null);
+            LegacyType("SessionRuntime").GetMethod("Stop").Invoke(null, new object[] { oldSession, null });
+            Assert.That(oldSession.Stage, Is.EqualTo(SessionStage.Disconnected));
+            Assert.That(oldSession.ContentCallbackCount, Is.Zero);
+            Assert.That((ISessionWorker[])LegacyType("SessionRuntime").GetProperty("Workers").GetValue(null), Is.Empty);
+
+            LegacyType("SessionRuntime").GetMethod("Retry").Invoke(null, null);
+            var newSession = (SessionCoordinator)LegacyType("SessionRuntime").GetProperty("Current").GetValue(null);
+            Assert.That(newSession, Is.Not.SameAs(oldSession));
+            double deadline = EditorApplication.timeSinceStartup + 180;
+            while (!newSession.IsReady && newSession.Stage != SessionStage.Failed && EditorApplication.timeSinceStartup < deadline) yield return null;
+            Assert.That(newSession.Stage, Is.EqualTo(SessionStage.Ready), newSession.Failure?.ToString());
+            for (int frame = 0; frame < 10; frame++) yield return null;
+            CaptureWorkers();
+
+            // Interrupt the actual socket under the background polling worker.
+            object connection = Singleton("DFConnection");
+            object client = Field(connection, "networkClient");
+            client.GetType().GetMethod("Interrupt").Invoke(client, null);
+            deadline = EditorApplication.timeSinceStartup + 10;
+            while (newSession.Stage != SessionStage.Failed && EditorApplication.timeSinceStartup < deadline) yield return null;
+            Assert.That(newSession.Stage, Is.EqualTo(SessionStage.Failed));
+            Assert.That(workers.Any(worker => worker.IsAlive), Is.False);
+            Assert.That(Field(connection, "networkClient"), Is.Null);
+            Assert.That(newSession.ContentCallbackCount, Is.Zero);
+            Assert.That(oldSession.Stage, Is.EqualTo(SessionStage.Disconnected), "Old owner interfered with retry.");
+            yield return new ExitPlayMode();
+        }
+
+        private void ConfigureWorkers(bool backgroundPolling, int meshThreads)
+        {
+            var meshing = Field(Singleton("GameSettings"), "meshing");
+            if (!originalMeshThreads.HasValue) originalMeshThreads = (int)Field(meshing, "meshingThreads");
+            meshing.GetType().GetField("meshingThreads").SetValue(meshing, meshThreads);
+            LegacyType("DFConnection").GetField("RunOnAlternateThread").SetValue(Singleton("DFConnection"), backgroundPolling);
+        }
+
+        private void RestoreMeshingSettings()
+        {
+            if (!originalMeshThreads.HasValue) return;
+            var meshing = Field(Singleton("GameSettings"), "meshing");
+            meshing.GetType().GetField("meshingThreads").SetValue(meshing, originalMeshThreads.Value);
+            originalMeshThreads = null;
         }
 
         // Characterization bridge while the legacy scene components remain in Assembly-CSharp.
@@ -141,12 +204,27 @@ namespace Armok.LiveTests
         private static object Singleton(string name) => LegacyType(name).GetProperty("Instance", Fields).GetValue(null);
         private static object Field(object owner, string name) => owner?.GetType().GetField(name, Fields)?.GetValue(owner);
 
+        private static bool HasMapGeometry()
+        {
+            var blockType = LegacyType("BlockMeshSet");
+            return Object.FindObjectsByType<MeshFilter>(FindObjectsInactive.Exclude).Any(filter =>
+                filter.sharedMesh != null && filter.sharedMesh.vertexCount > 0 && filter.GetComponentInParent(blockType) != null);
+        }
+
         private void CaptureWorkers()
         {
-            object manager = Field(Singleton("DFConnection"), "connectionManager");
-            if (Field(manager, "connectionThread") is Thread connectionWorker) workers.Add(connectionWorker);
+            var owned = (ISessionWorker[])LegacyType("SessionRuntime").GetProperty("Workers").GetValue(null);
+            Assert.That(owned.Length, Is.GreaterThan(0), "No registered session workers; shutdown coverage was lost.");
+            object connection = Singleton("DFConnection");
+            var polling = Field(connection, "connectionWorker") as PollingWorker;
+            Assert.That(polling != null, Is.EqualTo((bool)Field(connection, "RunOnAlternateThread")));
+            if (polling != null) workers.Add(polling.Thread);
             object mesher = Field(Singleton("GameMap"), "mesher");
-            if (Field(mesher, "threads") is Thread[] meshWorkers) workers.AddRange(meshWorkers.Where(worker => worker != null));
+            Assert.That(mesher, Is.Not.Null);
+            int expectedThreads = (int)Field(Field(Singleton("GameSettings"), "meshing"), "meshingThreads");
+            var meshWorkers = Field(mesher, "threads") as Thread[];
+            Assert.That(meshWorkers?.Length ?? 0, Is.EqualTo(expectedThreads));
+            if (meshWorkers != null) workers.AddRange(meshWorkers);
         }
 
         private static string SpriteHashes()

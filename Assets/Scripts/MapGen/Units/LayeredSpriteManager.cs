@@ -1,4 +1,4 @@
-﻿using DF.Enums;
+using DF.Enums;
 using RemoteFortressReader;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using UnitFlags;
 using UnityEngine;
 
 
-public class LayeredSpriteManager : MonoBehaviour
+public class LayeredSpriteManager : MonoBehaviour, ISessionContentParticipant
 {
     [SerializeField]
     private ProgressBar mainProgressBar;
@@ -113,7 +113,7 @@ public class LayeredSpriteManager : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        ContentLoader.RegisterLoadCallback(LoadLayeredSpriteSets);
+        RegisterSessionContent();
     }
 
     private IEnumerator LoadLayeredSpriteSets()
@@ -182,4 +182,14 @@ public class LayeredSpriteManager : MonoBehaviour
             return null;
         return casteSprites;
     }
+    private Armok.Lifecycle.SessionCoordinator registeredSession;
+    public void RegisterSessionContent()
+    {
+        if (!Application.isPlaying || ReferenceEquals(registeredSession, SessionRuntime.Current)) return;
+        sessionRegistration?.Dispose();
+        registeredSession = SessionRuntime.Current;
+        sessionRegistration = ContentLoader.RegisterLoadCallback(LoadLayeredSpriteSets);
+    }
+    private System.IDisposable sessionRegistration;
+    private void OnDestroy() { sessionRegistration?.Dispose(); }
 }

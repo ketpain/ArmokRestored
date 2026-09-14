@@ -25,6 +25,9 @@ namespace Armok.Tests.Editor
         [MenuItem("Mytools/Tests/Run Input Tests")]
         public static void RunInput() => Run(TestMode.PlayMode, "Armok.Input.Tests", "input");
 
+        [MenuItem("Mytools/Tests/Run Lifecycle Tests")]
+        public static void RunLifecycle() => Run(TestMode.EditMode, "Armok.Lifecycle.Tests", "lifecycle");
+
         [MenuItem("Mytools/Tests/Run Live DF Smoke Test")]
         public static void RunLive() => Run(TestMode.EditMode, "Armok.Tests.Editor", "live");
 

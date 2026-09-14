@@ -1,4 +1,4 @@
-﻿using DFHack;
+using DFHack;
 using RemoteFortressReader;
 using System;
 using System.Collections;
@@ -9,7 +9,7 @@ using UnityEngine.Profiling;
 
 namespace Building
 {
-    public class BuildingManager : MonoBehaviour
+    public class BuildingManager : MonoBehaviour, ISessionContentParticipant
     {
         public static BuildingManager Instance { get; private set; }
 
@@ -84,7 +84,7 @@ namespace Building
 
         private void Start()
         {
-            ContentLoader.RegisterLoadCallback(LoadBuildings);
+            RegisterSessionContent();
         }
 
         private void OnEnable()
@@ -332,5 +332,15 @@ namespace Building
             statusText.AppendLine();
             return statusText.ToString();
         }
+        private Armok.Lifecycle.SessionCoordinator registeredSession;
+        public void RegisterSessionContent()
+        {
+            if (!Application.isPlaying || ReferenceEquals(registeredSession, SessionRuntime.Current)) return;
+            sessionRegistration?.Dispose();
+            registeredSession = SessionRuntime.Current;
+            sessionRegistration = ContentLoader.RegisterLoadCallback(LoadBuildings);
+        }
+        private System.IDisposable sessionRegistration;
+        private void OnDestroy() { sessionRegistration?.Dispose(); }
     }
 }

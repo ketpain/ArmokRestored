@@ -22,7 +22,10 @@ must not be misrepresented as being the original software.
 distribution.
 */
 
+// Locally altered for bounded I/O and cooperative session shutdown; see Docs/ThirdParty.md.
 using System;
+using System.IO;
+using System.Threading;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -36,7 +39,7 @@ namespace DFHack
     {
         public static bool ReadFullBuffer(Socket socket, byte[] buf, int size)
         {
-            if (!socket.Connected)
+            if (socket == null || !socket.Connected)
                 return false;
 
             if (size == 0)
@@ -44,7 +47,9 @@ namespace DFHack
             int left = size;
             for (; left > 0;)
             {
-                int cnt = socket.Receive(buf, size - left, left, SocketFlags.None);
+                int cnt;
+                try { cnt = socket.Receive(buf, size - left, left, SocketFlags.None); }
+                catch { socket.Dispose(); throw; }
                 if (cnt <= 0) return false;
                 left -= cnt;
             }
@@ -95,8 +100,7 @@ namespace DFHack
         }
         ~RemoteClient()
         {
-            Disconnect();
-            Socket = null;
+            Interrupt();
 
             if (_deleteOutput)
                 _pDefaultOutput = null;
@@ -118,17 +122,27 @@ namespace DFHack
             get { return _pDefaultOutput; }
         }
 
-        private static Socket ConnectSocket(string server, int port)
+        public int IoTimeoutMilliseconds { get; set; } = 5000;
+
+        private Socket ConnectSocket(string server, int port)
         {
             Socket s = null;
 
             // Get host related information.
-            var hostEntry = Dns.GetHostEntry(server);
+            IPAddress literal;
+            IPAddress[] addresses;
+            if (IPAddress.TryParse(server, out literal)) addresses = new[] { literal };
+            else
+            {
+                var lookup = Dns.GetHostAddressesAsync(server);
+                if (!lookup.Wait(2000)) throw new IOException("DF server name lookup timed out.");
+                addresses = lookup.Result;
+            }
 
             // Loop through the AddressList to obtain the supported AddressFamily. This is to avoid 
             // an exception that occurs when the host IP Address is not compatible with the address family 
             // (typical in the IPv6 case). 
-            foreach (IPAddress address in hostEntry.AddressList)
+            foreach (IPAddress address in addresses)
             {
                 IPEndPoint ipe = new IPEndPoint(address, port);
                 Socket tempSocket =
@@ -136,11 +150,19 @@ namespace DFHack
 
                 try
                 {
-                    tempSocket.Connect(ipe);
+                    var pending = tempSocket.BeginConnect(ipe, null, null);
+                    using (pending.AsyncWaitHandle)
+                    {
+                        if (!pending.AsyncWaitHandle.WaitOne(2000))
+                            throw new SocketException((int)SocketError.TimedOut);
+                        tempSocket.EndConnect(pending);
+                    }
+                    tempSocket.ReceiveTimeout = IoTimeoutMilliseconds;
+                    tempSocket.SendTimeout = IoTimeoutMilliseconds;
                 }
                 catch (SocketException)
                 {
-                    // Often thrown if DF is inactive.
+                    tempSocket.Dispose();
                     continue;
                 }
 
@@ -167,7 +189,13 @@ namespace DFHack
 
         public bool Connect(string server = "localhost", int port = -1)
         {
-            Debug.Assert(!_active);
+            try { return ConnectCore(server, port); }
+            catch { Interrupt(); throw; }
+        }
+
+        private bool ConnectCore(string server, int port)
+        {
+            if (_active) throw new InvalidOperationException("Already connected.");
 
             if (port <= 0)
                 port = GetDefaultPort();
@@ -228,17 +256,33 @@ namespace DFHack
 
         public void Disconnect()
         {
-            if (_active && Socket != null)
+            // Only the RPC owner may send Quit. Interrupt never writes into an in-flight RPC.
+            var socket = Interlocked.Exchange(ref Socket, null);
+            _active = false;
+            _suspendReady = false;
+            if (socket == null) return;
+            try
             {
-                RpcMessageHeader header;
-                header.Id = (Int16)DfHackReplyCode.RpcRequestQuit;
-                header.Size = 0;
-                if (Socket.Send(header.ConvertToBtyes()) != header.ConvertToBtyes().Length)
-                    DefaultOutput.PrintErr("Could not send the disconnect message.\n");
-                Socket.Close();
+                socket.SendTimeout = 100;
+                var header = new RpcMessageHeader { Id = (short)DfHackReplyCode.RpcRequestQuit, Size = 0 };
+                socket.Send(header.ConvertToBtyes());
             }
-            Socket = null;
+            catch (SocketException) { }
+            catch (ObjectDisposedException) { }
+            finally { socket.Dispose(); }
 
+        }
+
+        // Safe from the stop thread: wakes a synchronous receive without sending another RPC.
+        public void Interrupt()
+        {
+            _active = false;
+            var socket = Interlocked.Exchange(ref Socket, null);
+            if (socket == null) return;
+            try { socket.Shutdown(SocketShutdown.Both); }
+            catch (SocketException) { }
+            catch (ObjectDisposedException) { }
+            finally { socket.Dispose(); }
         }
 
         public CommandResult RunCommand(string cmd, List<string> args)
@@ -271,9 +315,9 @@ namespace DFHack
 
             if (!_suspendReady)
             {
+                if (!_suspendCall.Bind(this, "CoreSuspend") || !_resumeCall.Bind(this, "CoreResume"))
+                    return -1;
                 _suspendReady = true;
-                _suspendCall.Bind(this, "CoreSuspend");
-                _resumeCall.Bind(this, "CoreResume");
             }
 
             if (_suspendCall.TryExecute(DefaultOutput) == CommandResult.CrOk)
@@ -293,7 +337,7 @@ namespace DFHack
         }
 
         //private:
-        bool _active;
+        volatile bool _active;
 
         readonly bool _deleteOutput;
         public Socket Socket;

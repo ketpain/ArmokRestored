@@ -1,4 +1,4 @@
-﻿using DFHack;
+using DFHack;
 using RemoteFortressReader;
 using System;
 using System.Collections;
@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [ExecuteInEditMode]
-public class ItemManager : MonoBehaviour
+public class ItemManager : MonoBehaviour, ISessionContentParticipant
 {
     static ItemManager _instance;
     public static ItemManager Instance {
@@ -85,7 +85,7 @@ public class ItemManager : MonoBehaviour
         {
             ForceLoadItems();
         }
-        else ContentLoader.RegisterLoadCallback(LoadItems);
+        else RegisterSessionContent();
     }
 
     private void ForceLoadItems()
@@ -321,4 +321,14 @@ public class ItemManager : MonoBehaviour
 
         return true;
     }
+    private Armok.Lifecycle.SessionCoordinator registeredSession;
+    public void RegisterSessionContent()
+    {
+        if (!Application.isPlaying || ReferenceEquals(registeredSession, SessionRuntime.Current)) return;
+        sessionRegistration?.Dispose();
+        registeredSession = SessionRuntime.Current;
+        sessionRegistration = ContentLoader.RegisterLoadCallback(LoadItems);
+    }
+    private System.IDisposable sessionRegistration;
+    private void OnDestroy() { sessionRegistration?.Dispose(); }
 }

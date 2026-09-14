@@ -52,3 +52,16 @@ The live scene test currently uses a small reflection bridge to inspect the lega
 Use the same DF fixture for comparisons of live sprite hashes. The live test compares all mip pixels across its own three runs; the historical restoration hash report is additional local evidence, not a required test fixture. Shader support/error checks are supplemented by a visual smoke check when changing rendering code.
 
 Loading timings are observations and include yielded frames. Imports, compilation, first connection, and the cost of the test's hash/shader checks are separate. The suite has no universal timing threshold and does not establish Windows player or other-platform correctness by itself.
+## Session lifecycle checks
+
+`Mytools/Tests/Run Lifecycle Tests` runs `Armok.Lifecycle.Tests` offline. It exercises stage ordering, callback removal, nested coroutine failure/cancellation, cooperative polling shutdown, the shared worker deadline, and the real DFHack transport against a controlled loopback peer. No running game is required. Reports are written to `TestResults/lifecycle.xml` and `.txt`.
+
+For a closed project or an isolated checkout:
+
+```powershell
+Tools/RunUnityValidation.ps1 -Mode EditMode -TestAssembly Armok.Lifecycle.Tests -TestFilter Armok.Tests
+```
+
+The live fixture also covers interrupted content loading followed by scene retry, a real socket interruption during polling, and repeated sessions using both polling modes and zero/two/four meshing threads. Temporary meshing settings are restored before scene destruction so they are not saved to the user's configuration.
+
+`Tools/RunUnityValidation.ps1 -Mode FullReloadLive` checks the same startup with both normal domain and scene reloads enabled in a closed batch checkout. It requires live DF, restores editor options, and writes `full-reload-validation.json` plus the process exit result. It checks readiness and worker shutdown before unloading the domain. Unity 6000.6's observed batch search-index `ArgumentOutOfRangeException` is recorded separately as `editorDiagnostic`; this exact editor-only stack is not treated as an application failure. All application errors still fail the check.

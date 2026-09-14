@@ -1,7 +1,7 @@
 param(
     [string]$ProjectPath = (Split-Path -Parent $PSScriptRoot),
     [string]$UnityPath,
-    [ValidateSet('PrepareContent', 'EditMode', 'PlayMode')][string]$Mode = 'PrepareContent',
+    [ValidateSet('PrepareContent', 'EditMode', 'PlayMode', 'FullReloadLive')][string]$Mode = 'PrepareContent',
     [string]$TestFilter = 'Armok.Tests',
     [string]$TestAssembly,
     [string]$ReportDirectory
@@ -19,6 +19,8 @@ $reportRoot = (Resolve-Path -LiteralPath $ReportDirectory).Path
 $arguments = @('-batchmode', '-projectPath', ('"' + $projectRoot + '"'), '-logFile', ('"' + (Join-Path $reportRoot 'Editor.log') + '"'))
 if ($Mode -eq 'PrepareContent') {
     $arguments += @('-quit', '-executeMethod', 'Armok.Editor.ProjectValidation.PrepareContent')
+} elseif ($Mode -eq 'FullReloadLive') {
+    $arguments += @('-executeMethod', 'Armok.Editor.SessionReloadValidation.Run')
 } else {
     if (-not $TestAssembly) {
         if ($Mode -eq 'EditMode') { $TestAssembly = 'Armok.Content.Tests' }
@@ -34,5 +36,11 @@ Write-Output "Unity $Mode validation started (PID $($process.Id))."
 $process.WaitForExit()
 $result = [ordered]@{ mode=$Mode; editorVersion=$version; exitCode=$process.ExitCode; completedUtc=[DateTime]::UtcNow.ToString('o') }
 $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $reportRoot 'process-result.json') -Encoding UTF8
+if ($Mode -eq 'FullReloadLive') {
+    $fullReloadReport = Join-Path $projectRoot 'Logs/full-reload-validation.json'
+    if (Test-Path -LiteralPath $fullReloadReport) {
+        Copy-Item -LiteralPath $fullReloadReport -Destination (Join-Path $reportRoot 'full-reload-validation.json')
+    }
+}
 if ($process.ExitCode -ne 0) { throw "Unity validation failed with exit code $($process.ExitCode). Inspect $reportRoot." }
 Write-Output "Unity $Mode validation completed successfully. Reports: $reportRoot"
