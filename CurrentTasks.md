@@ -152,7 +152,7 @@ Primary files: `Items/ItemManager.cs`, `Items/DecorationManager.cs`, `Images/Ima
 - [ ] Keep shared parsing/generation logic usable by both editor and runtime callers, with separate owners for their temporary resources.
 - [ ] Provide a clear way to rebuild material arrays/definitions after source changes while preserving the current missing-resource generation behavior.
 - [ ] Verify startup and builds when generated resources are absent. Preserve existing references when regenerating assets that are already present.
-- [ ] Make release packaging check `BuildReport.summary.result` and stop on a failed player build before copying extras or creating an archive. The current build script logs the result and continues.
+- [x] Make release packaging check `BuildReport.summary.result` and stop on a failed player build before copying extras or creating an archive.
 
 Acceptance:
 
@@ -205,7 +205,7 @@ Acceptance:
 Dependencies: All implemented phases.
 
 - [ ] Run the maintained test suite and fresh-checkout resource/dependency checks.
-- [ ] Build a Windows player through the supported build command and perform a live DF smoke check. Record other platforms as unverified until actually tested.
+- [x] Build a Windows player through the supported build command and perform a live DF smoke check. Record other platforms as unverified until actually tested.
 - [ ] Recheck modern controls, terrain/material rendering, cursor UI, exports, repeated Play, failed connection recovery, and shutdown.
 - [ ] Measure cold-cache and warm-cache content loads using the same DF fixture and comparable editor conditions. Investigate material regressions instead of treating the prior timing as a hardware-independent test threshold.
 - [ ] Compare sprite color/normal mip hashes against the applicable original fixture. Keep timing observations separate from deterministic pixel correctness checks.
@@ -271,3 +271,5 @@ References: [Unity assembly organization](https://docs.unity3d.com/6000.0/Docume
 - Final validation: all 26 editor tests passed, including the live test covering three Play sessions. Offline command-line suites passed independently in the isolated checkout. Input, rendering, package, and reload settings in the working project are unchanged.
 - Final local evidence: `Logs/Maintenance-20260913/phase1-final-results.json`; repeatable instructions and test scope: `Docs/Testing.md`.
 - Next task: characterize session failure/shutdown paths, then implement cooperative worker cancellation and explicit startup ownership under Phase 2. Windows player builds and broader class/folder extraction remain pending as listed above.
+
+- 2026-09-14: Release packaging now requires BuildReport success before copying extras or creating an archive, and excludes Unity's debugging backup. A deliberately rejected build previously continued into CopyExtras; it now throws BuildFailedException with no extras/archive. Fixed material preparation destroying the existing resource during replacement and synchronously imported replacements before Resources lookup. Repeated preparation preserved serialized data and GUIDs; 40 content tests passed. Windows release built successfully (first compile: 23 existing API/serialization warnings; incremental rebuild: 0 warnings/errors). The real executable connected to DF 53.16 / DFHack 53.16-r1.1 / RFR 0.21.0, rendered terrain/entities, supported movement/zoom/orbit, inspection pin/release and settings, and closed in 2.3 seconds without exceptions. A small magenta entity was visible and remains a separate rendering issue. Archive has 520 entries with executable/extras and no debugging backup. Evidence: Logs/ReleaseAndPhase3-20260914. Other platforms remain unverified.

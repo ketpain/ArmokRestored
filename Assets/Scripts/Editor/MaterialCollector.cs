@@ -162,6 +162,11 @@ namespace MaterialStore
             AssetDatabase.CreateAsset(shapeArray, "Assets/Resources/shapeTextures.asset");
             AssetDatabase.CreateAsset(matCollection, "Assets/Resources/materialDefinitions.asset");
             AssetDatabase.SaveAssets();
+            // Replacements must be imported before Resources can resolve their new objects.
+            foreach (string resource in new[] { "patternTextures", "shapeTextures", "materialDefinitions" })
+                AssetDatabase.ImportAsset("Assets/Resources/" + resource + ".asset",
+                    ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+            MaterialCollection.Init();
             MaterialCollection.Instance.Refresh();
         }
 

@@ -34,20 +34,6 @@ namespace MaterialStore
 
         public MaterialTextureSet this[MatPairStruct key] => ((IReadOnlyDictionary<MatPairStruct, MaterialTextureSet>)matTextures)[key];
 
-        private void Awake()
-        {
-            if(_instance != null && _instance != this)
-            {
-                if (Application.isPlaying)
-                    Destroy(_instance);
-                else
-                    DestroyImmediate(_instance, true);
-                return;
-            }
-            if (_instance == null)
-                _instance = this;
-        }
-
         public bool ContainsKey(MatPairStruct key)
         {
             return ((IReadOnlyDictionary<MatPairStruct, MaterialTextureSet>)matTextures).ContainsKey(key);

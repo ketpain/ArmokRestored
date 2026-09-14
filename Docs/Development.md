@@ -30,7 +30,7 @@ Record editor version, revision, scene, quality preset, DF/DFHack/plugin version
 4. With a suitable DF fortress open and DFHack available, enter Map Mode. Confirm connection, material preparation, terrain and creatures, camera controls, pointer/UI input, and absence of unexpected exceptions.
 5. Stop and start Play at least three times. Check that loading callbacks do not multiply, no previous session continues polling/meshing, and stopping produces no new exceptions. Record reload settings and restore any temporary editor options.
 6. For content changes, record cold-cache and warm-cache stage timings separately. Compare sprite pixels at all mip levels against the same fixture when changing texture generation. The content timer excludes imports, compilation, and initial connection and includes yielded frames.
-7. Use `Mytools > Build Release > Windows` for the supported release path. Check the actual player build result and run the produced player against DF. Until the Phase 4 build-result fix lands, the legacy release command may continue packaging after a build failure; an archive alone is not evidence of success.
+7. Use `Mytools > Build Release > Windows` for the supported release path. It prepares materials, explicitly builds Map Mode, and requires a successful `BuildReport` before copying extras or creating the archive. Unity's debugging backup stays beside the build and is excluded from the archive. Check the actual player build result and run the produced player against DF; an archive alone is not evidence of success.
 
 Checks needing a graphics device or a live DF process must be reported separately from offline tests. Do not report platforms, player behavior, or live integration as verified based only on editor compilation.
 

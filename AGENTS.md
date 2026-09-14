@@ -368,8 +368,9 @@ must be accounted for explicitly.
   select Map Mode, prepare materials, and package extras from `ReleaseFiles`.
   `Assets/Plugins/BuildSettings.cs` supplies release configuration. The default
   `ProjectSettings/EditorBuildSettings.asset` still lists SampleScene. Correct
-  build-result handling and Windows player verification remain pending; an
-  archive alone is not proof of a successful player build.
+  build-result handling requires success before packaging; Unity's debugging
+  backup is excluded from the archive. The Windows release player has a recorded
+  live check; other platforms remain unverified.
 * `Assets/MeshSerializer` contains the mesh export data/component and its editor
   inspector. JSON and XML exports use data contract serializers to preserve
   readonly `CPUMesh` fields. The old BinaryFormatter `.avmesh` output is retired;

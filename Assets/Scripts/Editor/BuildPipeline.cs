@@ -1,5 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using Ionic.Zip;
 using Newtonsoft.Json;
 using System.IO;
@@ -91,12 +93,21 @@ public class BuildFactory
         var options = BuildOptions.None;
         if (isDebug)
             options |= BuildOptions.AllowDebugging;
-        UnityEngine.Debug.Log(BuildPipeline.BuildPlayer(levels, path + releaseName, target, options));
+        var report = BuildPipeline.BuildPlayer(levels, path + releaseName, target, options);
+        if (report == null)
+            throw new BuildFailedException("Unity returned no player build report. Release packaging was skipped.");
+        var summary = report.summary;
+        if (summary.result != BuildResult.Succeeded)
+            throw new BuildFailedException($"{target} player build {summary.result}: {summary.totalErrors} error(s), {summary.totalWarnings} warning(s). Release packaging was skipped; see the build errors in the Console.");
+        UnityEngine.Debug.Log($"Player build succeeded: {summary.outputPath}");
         CopyExtras(path);
 
         using (ZipFile zip = new ZipFile())
         {
             zip.AddDirectory(path);
+            // Keep Unity's debugging backup beside the build, outside the distributable.
+            string backupFolder = Path.GetFileNameWithoutExtension(releaseName) + "_BackUpThisFolder_ButDontShipItWithYourGame";
+            zip.RemoveSelectedEntries("name = '" + backupFolder + "/*'");
             zip.Save("Build/" + BuildSettings.Instance.title + " " + (isDebug ? BuildSettings.Instance.build_date : BuildSettings.Instance.content_version) + " " + targetString + (isDebug ? "_debug" : "") + ".zip");
         }
     }
