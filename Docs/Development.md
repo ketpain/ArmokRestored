@@ -36,6 +36,14 @@ Checks needing a graphics device or a live DF process must be reported separatel
 
 For a separate checkout, run Unity with `-batchmode -quit -projectPath <checkout> -executeMethod Armok.Editor.ProjectValidation.PrepareContent -logFile <log-path>` to compile and rebuild the material resources without DF. Supply the full path to the pinned Unity editor executable. Use a graphics-capable environment, and check both the process exit code and `Logs/project-validation.json` in that checkout. Do not open the same checkout in two editors simultaneously.
 
+## MeshSerializer editor exports
+
+The `MeshSerializer` inspector exports `.json` with `DataContractJsonSerializer` or `.xml` with `DataContractSerializer`. Both preserve the `[Serializable]` mesh data, including `CPUMesh`'s readonly arrays, vertex count, name, layer, and rotation. JSON stores enum values as numbers; XML uses the data contract's element names and namespaces. Export streams are closed before the operation returns.
+
+The former BinaryFormatter `.avmesh` output was retired on 2026-09-14. There is no `.avmesh` reader or stored `.avmesh` asset in this project. JSON is a new format, not a compatible replacement for existing binary files; renaming an old `.avmesh` file will not convert it. The XML export now uses a data contract instead of the previous `XmlSerializer`, which cannot serialize the current `CPUMesh` class without a parameterless constructor. External tools expecting that old XML layout would need updating. These inspector exports are separate from the runtime content loaders and OBJ exports.
+
+API references: [Unity named build targets](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Build.NamedBuildTarget.FromBuildTargetGroup.html) and [Microsoft data contract JSON serialization](https://learn.microsoft.com/en-us/dotnet/framework/wcf/feature-details/stand-alone-json-serialization).
+
 ## Original restoration measurements
 
 The 2026-09-13 validation used Unity 6000.6.0f1 and a DF 53.16 / DFHack 53.16-r1.1 / RemoteFortressReader 0.21.0 connection. It produced 4,271 sprites over 39 pages. Content loading measured approximately 10 seconds warm and 12 seconds with an empty creature cache; the original measurement was approximately 167 seconds. All color/normal mip pixels matched the original output. These figures describe that run, not a portable timing threshold.

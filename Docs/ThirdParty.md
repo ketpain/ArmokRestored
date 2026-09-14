@@ -25,3 +25,5 @@ The revision was obtained from the reference Armok Vision checkout at `3027c785a
 Unity packages are recorded in `Packages/manifest.json` and `Packages/packages-lock.json`. Bundled libraries and art retain their existing license files. A full inventory and unused-dependency audit is scheduled in `CurrentTasks.md`; this document does not yet claim to inventory every asset package.
 
 On 2026-09-14, the bundled Standard Assets `ParticleFlames.mat` and `ParticleFirecloud.mat` were reserialized by Unity 6000.6 to Material format 8. Their shader references, saved properties, and metadata/GUIDs were preserved.
+
+On 2026-09-14, the Standard Assets editor helper `Assets/Scripts/Editor/CrossPlatformInput/CrossPlatformInputInitialize.cs` was updated to call the named-build-target scripting-define APIs. The existing target groups and symbols were retained. This does not change the project's modern Input System configuration.

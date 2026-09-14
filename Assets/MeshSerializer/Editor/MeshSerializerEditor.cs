@@ -1,12 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+using System.Xml;
 using UnityEditor;
 using UnityEngine;
-using System.Xml.Serialization;
-using System.IO;
-using System;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Runtime.Serialization;
 
 [CustomEditor(typeof(MeshSerializer))]
 public class MeshSerializerEditor : Editor
@@ -25,15 +22,11 @@ public class MeshSerializerEditor : Editor
                 var path = EditorUtility.SaveFilePanel("Save mesh as XML", "", "out.xml", "xml");
                 if (!string.IsNullOrEmpty(path))
                 {
-                    XmlSerializer ser = new XmlSerializer(typeof(MeshContentSerialized));
-
-                    TextWriter textOut = new StreamWriter(path);
-
-                    ser.Serialize(textOut, outputMesh);
+                    SaveXml(path, outputMesh);
                 }
             }
         }
-        if (GUILayout.Button("Serialize Binary"))
+        if (GUILayout.Button("Serialize JSON"))
         {
             MeshSerializer tar = (MeshSerializer)target;
 
@@ -41,16 +34,32 @@ public class MeshSerializerEditor : Editor
             {
                 var outputMesh = tar.outputMesh;
 
-                var path = EditorUtility.SaveFilePanel("Save mesh as Binary avmesh", "", "out.avmesh", "avmesh");
+                var path = EditorUtility.SaveFilePanel("Save mesh as JSON", "", "out.json", "json");
                 if (!string.IsNullOrEmpty(path))
                 {
-                    IFormatter formatter = new BinaryFormatter();
-
-                    Stream stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-
-                    formatter.Serialize(stream, outputMesh);
+                    SaveJson(path, outputMesh);
                 }
             }
+        }
+    }
+
+    // CPUMesh has readonly fields and no parameterless constructor. Data contracts
+    // honor its [Serializable] fields; JsonUtility/XmlSerializer would omit or reject them.
+    internal static void SaveXml(string path, MeshContentSerialized mesh)
+    {
+        var serializer = new DataContractSerializer(typeof(MeshContentSerialized));
+        using (var writer = XmlWriter.Create(path, new XmlWriterSettings { Indent = true }))
+        {
+            serializer.WriteObject(writer, mesh);
+        }
+    }
+
+    internal static void SaveJson(string path, MeshContentSerialized mesh)
+    {
+        var serializer = new DataContractJsonSerializer(typeof(MeshContentSerialized));
+        using (var stream = File.Create(path))
+        {
+            serializer.WriteObject(stream, mesh);
         }
     }
 }
