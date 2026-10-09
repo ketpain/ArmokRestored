@@ -47,8 +47,14 @@ public class BlockMeshSet : MonoBehaviour
         All
     }
 
+    Visibility? appliedVisibility;
+
     public void UpdateVisibility(Visibility vis)
     {
+        // This component owns renderer visibility. Avoid repeating native writes every frame.
+        if (appliedVisibility == vis)
+            return;
+
         switch (vis)
         {
             case Visibility.None:
@@ -83,6 +89,7 @@ public class BlockMeshSet : MonoBehaviour
             default:
                 break;
         }
+        appliedVisibility = vis;
     }
 
     MaterialManager.MaterialFlags matFlags = MaterialManager.MaterialFlags.None;
@@ -212,14 +219,10 @@ public class BlockMeshSet : MonoBehaviour
         if (newMeshes.terrainMesh != null)
         {
             madeNew |= CopyMesh(MeshType.Terrain, newMeshes.terrainMesh, suffix);
-            meshFilters[MeshType.Terrain].mesh.RecalculateNormals();
-            meshFilters[MeshType.Terrain].mesh.RecalculateTangents();
         }
         if (newMeshes.topTerrainMesh != null)
         {
             madeNew |= CopyMesh(MeshType.TopTerrain, newMeshes.topTerrainMesh, suffix);
-            meshFilters[MeshType.TopTerrain].mesh.RecalculateNormals();
-            meshFilters[MeshType.TopTerrain].mesh.RecalculateTangents();
         }
         if (newMeshes.water != null)
         {
@@ -238,6 +241,16 @@ public class BlockMeshSet : MonoBehaviour
 
     private bool CopyMesh(MeshType type, CPUMesh mesh, string suffix)
     {
+        if (mesh.vertexCount == 0)
+        {
+            if (meshFilters.TryGetValue(type, out var existing))
+            {
+                existing.sharedMesh.Clear();
+                meshRenderers[type].enabled = false;
+            }
+            return false;
+        }
+
         bool madeNew = false;
         if(!meshFilters.ContainsKey(type))
         {
@@ -247,12 +260,20 @@ public class BlockMeshSet : MonoBehaviour
             newGameObject.name = type.ToString();
             meshFilters[type] = newGameObject.AddComponent<MeshFilter>();
             meshRenderers[type] = newGameObject.AddComponent<MeshRenderer>();
+            // A new renderer still needs the current shadow mode, even if the block has not moved.
+            appliedVisibility = null;
             meshFilters[type].mesh = new Mesh();
             meshFilters[type].mesh.name = type.ToString() + "_" + suffix;
             madeNew = true;
         }
         meshFilters[type].mesh.Clear();
         mesh.CopyToMesh(meshFilters[type].mesh);
+        if (type == MeshType.Terrain || type == MeshType.TopTerrain)
+        {
+            meshFilters[type].mesh.RecalculateNormals();
+            meshFilters[type].mesh.RecalculateTangents();
+        }
+        meshRenderers[type].enabled = true;
         return madeNew;
     }
 
@@ -261,6 +282,7 @@ public class BlockMeshSet : MonoBehaviour
         foreach (var item in meshFilters)
         {
             ClearMesh(item.Value.mesh);
+            meshRenderers[item.Key].enabled = false;
         }
         if (collisionBlocks != null)
         {

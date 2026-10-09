@@ -20,7 +20,7 @@ public class MapPositionUpdater : MonoBehaviour
 
     public void Awake()
     {
-        gameMap = FindObjectOfType<GameMap>();
+        gameMap = FindAnyObjectByType<GameMap>();
     }
 
     Vector3 oldPos;

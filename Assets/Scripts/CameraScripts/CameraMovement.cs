@@ -18,7 +18,7 @@ public class CameraMovement : MonoBehaviour
 
     void Awake()
     {
-        gameMap = FindObjectOfType<GameMap>();
+        gameMap = FindAnyObjectByType<GameMap>();
     }
 
     // Use this for initialization

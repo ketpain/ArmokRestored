@@ -1,4 +1,4 @@
-# Engineering Instructions
+# Engineering Instructions (DO NOT CHANGE)
 
 Write code that is modern, professional, concise, simple, and easy to inspect.
 
@@ -200,7 +200,7 @@ Before finishing, review the change for:
 
 Do not describe work as complete when verification has not been performed.
 
-## Project Architecture
+## Project Architecture (Keep up to date)
 
 ArmokRestored is a Unity restoration of Armok Vision, a 3D client for a running
 Dwarf Fortress game through DFHack and RemoteFortressReader. DF owns the game
@@ -307,7 +307,10 @@ See `Docs/SessionLifecycle.md` for detailed ordering and failure behavior.
   cooperative cancellation. `Meshing/MeshData.cs` defines `CPUMesh`;
   `MapBlock/BlockMeshSet.cs` holds the map's Unity mesh presentation. These paths
   are under `Assets/Scripts/MapGen`. Keep Unity object creation, destruction,
-  texture uploads, and mesh application on the main thread.
+  texture uploads, and mesh application on the main thread. Block presentation
+  allocates renderers only when nonempty geometry arrives; empty updates clear
+  and disable existing renderers for later reuse. `Assets/Resources/MapBlock.prefab`
+  contains the block component and collider, without unused renderer templates.
 * `Assets/Scripts/MapGen/Buildings`, `Items`, `Images`, and `DistantTerrain`
   contain their respective presentation systems. `CreatureSpriteManager.cs`
   manages creature sprites, while `Assets/Scripts/UnitCreator` handles creature
@@ -318,6 +321,14 @@ The project uses the Built-in Render Pipeline with its existing shaders and
 materials, including the material texture arrays. URP is present in the package
 manifest but is not the active rendering pipeline. Preserve the Graphics and
 Quality settings when making unrelated changes.
+`Art/SingleImage Transparent` and `Building/Transparent` are explicitly included
+in Graphics settings because the content catalog selects them by name at runtime.
+The Building shader includes declare creature pattern colors as instanced
+properties alongside the existing material properties. Preserve per-renderer
+texture overrides and non-instanced rendering when changing that shared code.
+Both Map Mode Post Process Layers keep `finalBlitToCameraTarget` disabled: the
+direct backbuffer path reproduces a native release-player exit crash on the
+pinned Unity version. Effects remain enabled; see `Docs/Development.md`.
 
 ### Input, Inspection, And Settings
 
@@ -371,6 +382,14 @@ must be accounted for explicitly.
 * `Assets/Scripts/Editor/ProjectValidation.cs` provides repeatable offline content
   preparation. `SessionReloadValidation.cs` in the same folder checks a live
   session with normal reloads enabled. They are separate from runtime loading.
+* `Assets/Scripts/Editor/ContentPreviewPreparation.cs` supplies
+  `Mytools > Prepare Content Previews`, also called by DF Raw Reader after Read
+  Raws. Item, decoration, and image managers prepare editor content explicitly;
+  their edit-mode `Awake` callbacks do not drain loaders. Runtime preparation
+  remains registered with the session. Image preparation uses CPU pixel arrays,
+  preserves imported textures, and releases generated arrays/images/meshes on
+  rebuild, session stop, or destruction, and when editor previews are disabled
+  or scripts reload.
 * `Assets/Scripts/Editor/BuildPipeline.cs` contains the legacy `BuildFactory`
   release commands and protocol generation. Windows release builds explicitly
   select Map Mode, prepare materials, and package extras from `ReleaseFiles`.
@@ -407,9 +426,14 @@ must be accounted for explicitly.
 ### Verification And Documentation
 
 * `Assets/Armok/Tests/EditMode` (`Armok.Content.Tests`) covers texture resizing and
-  sprite cache correctness, invalidation, and failure recovery.
+  sprite cache correctness, invalidation, failure recovery, explicit editor
+  preparation, imported artwork preservation, and generated image ownership.
+  Graphics tests also compare Building shader property-block colors and material
+  defaults with separate-material rendering; batching is measured in players.
 * `Assets/Armok/Tests/PlayMode` (`Armok.Input.Tests`) covers modern actions with
-  synthetic input devices.
+  synthetic input devices and block visibility transitions, collision layers,
+  empty mesh allocation/refill, and newly arriving meshes receiving the current
+  shadow settings.
 * `Assets/Armok/Tests/Lifecycle` (`Armok.Lifecycle.Tests`) covers session ordering,
   cancellation, meshing shutdown, and DFHack transport failure cases using a
   controlled local peer; it needs no running DF game.
@@ -430,8 +454,9 @@ must be accounted for explicitly.
 * `CurrentTasks.md` is the maintenance roadmap and verification record. Phases
   0-2 are complete; Phase 3 has begun with inspection and legacy HUD retirement.
   Coordinates, screenshots/data exports and the loaded content catalog are now
-  extracted. Further map input/presentation separation, editor preparation,
-  folder/assembly restructuring and final regression work remain. Do not describe
+  extracted. Phase 4's explicit editor preparation and build checks are complete.
+  Further map input/presentation separation, folder/assembly restructuring and
+  final regression work remain. Do not describe
   planned modules as existing architecture.
 * `README.md` retains upstream project context; use the restoration documents
   above for the current checkout and workflow. Keep this architecture section

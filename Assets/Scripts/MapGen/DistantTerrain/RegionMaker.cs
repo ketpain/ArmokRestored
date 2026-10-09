@@ -105,7 +105,7 @@ public class RegionMaker : MonoBehaviour
     void Awake()
     {
         meshFilter = GetComponent<MeshFilter>();
-        parentMap = FindObjectOfType<WorldMapMaker>();
+        parentMap = FindAnyObjectByType<WorldMapMaker>();
     }
 
     MeshFilter waterChunk;

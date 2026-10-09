@@ -24,7 +24,7 @@ namespace UserSettings
         {
             slider = GetComponent<Slider>();
             valueLabel = transform.Find("Value").GetComponent<Text>();
-            gameMap = FindObjectOfType<GameMap>();
+            gameMap = FindAnyObjectByType<GameMap>();
             cam = Camera.main;
         }
 

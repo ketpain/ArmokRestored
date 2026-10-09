@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
+// Editor previews need destruction callbacks, but prepare their content explicitly.
 [ExecuteInEditMode]
 public class ImageManager : MonoBehaviour, ISessionContentParticipant
 {
@@ -14,7 +15,7 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
         get
         {
             if (_instance == null)
-                _instance = FindObjectOfType<ImageManager>();
+                _instance = FindAnyObjectByType<ImageManager>();
             if (_instance == null)
                 _instance = Instantiate(Resources.Load<ImageManager>("ImageManager"));
             return _instance;
@@ -40,22 +41,14 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
             _instance = this;
         }
 
-        if (!Application.isPlaying)
-        {
-            var loader = LoadImages();
-            while (loader.MoveNext())
-            {
-
-            }
-            Debug.Log("Loaded images.");
-        }
-        else RegisterSessionContent();
+        RegisterSessionContent();
     }
 
     Dictionary<DFHack.DFCoord, MeshRenderer> engravingStore = new Dictionary<DFHack.DFCoord, MeshRenderer>();
 
     private void Update()
     {
+        if (!Application.isPlaying) return;
         if (DFConnection.Instance == null)
             return;
         List<Engraving> engravingList;
@@ -489,8 +482,8 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
 
     public Texture2D dfSpriteMap;
 
-    public Texture2DArray imageSpriteArray;
-    public Texture2DArray imageSpriteNormals;
+    [NonSerialized] public Texture2DArray imageSpriteArray;
+    [NonSerialized] public Texture2DArray imageSpriteNormals;
 
     Dictionary<MatPairStruct, int> ItemSpriteMap = new Dictionary<MatPairStruct, int>();
 
@@ -530,19 +523,19 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
         }
     }
 
-    IEnumerator LoadImages()
+    public IEnumerator LoadImages()
     {
+        ReleaseImages();
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         if (mainProgressBar != null)
             mainProgressBar.SetProgress("Loading images");
 
-        List<Texture2D> textureList = new List<Texture2D>();
+        List<Color[]> textureList = new List<Color[]>();
         int missingCreatureArt = 0;
         var missingArtExamples = new List<string>();
         int loadedCount = 0;
         float loadTotal = 0;
-        if (DFConnection.Instance != null && CreatureRaws.Instance != null)
-            loadTotal += CreatureRaws.Instance.Count;
+        loadTotal += CreatureRaws.Instance.Count;
         loadTotal += ItemRaws.Instance.ItemList.Count;
         //DFTiles:
         {
@@ -552,43 +545,34 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
                 for (int x = 0; x < 16; x++)
                 {
                     var pixels = dfSpriteMap.GetPixels(sourceWidth * x, sourceHeight * y, sourceWidth, sourceHeight);
-                    var tempTex = new Texture2D(sourceWidth, sourceHeight, TextureFormat.ARGB32, false);
-                    tempTex.SetPixels(pixels);
-                    tempTex.Apply();
-                    if (tempTex.width != 32 || tempTex.height != 32)
-                        TextureScale.Bilinear(tempTex, 32, 32);
-                    textureList.Add(tempTex);
+                    textureList.Add(PreparePixels(pixels, sourceWidth, sourceHeight));
                 }
         }
         //IMAGE_CREATURE:
-        //Fixme: have a non-volatile creature list
-        if (DFConnection.Instance != null && CreatureRaws.Instance != null)
-            foreach (var creature in CreatureRaws.Instance)
+        foreach (var creature in CreatureRaws.Instance)
+        {
+            string token = creature.creature_id;
+            if (subProgressBar != null)
+                subProgressBar.SetProgress(loadedCount / loadTotal, token);
+            loadedCount++;
+            Texture2D sprite = LoadCreatureArt(token);
+            if (sprite == null)
             {
-                string token = creature.creature_id;
-                if (subProgressBar != null)
-                    subProgressBar.SetProgress(loadedCount / loadTotal, token);
-                loadedCount++;
-                Texture2D sprite = LoadCreatureArt(token);
-                if (sprite == null)
-                {
-                    missingCreatureArt++;
-                    if (missingArtExamples.Count < 5)
-                        missingArtExamples.Add(token);
-                    continue;
-                }
-                if (sprite.width != 32 || sprite.height != 32)
-                    TextureScale.Bilinear(sprite, 32, 32);
-                CreatureSpriteMap[creature.index] = textureList.Count;
-                textureList.Add(sprite);
-
-                if (stopWatch.ElapsedMilliseconds > ContentLoader.LoadFrameTimeout)
-                {
-                    yield return null;
-                    stopWatch.Reset();
-                    stopWatch.Start();
-                }
+                missingCreatureArt++;
+                if (missingArtExamples.Count < 5)
+                    missingArtExamples.Add(token);
+                continue;
             }
+            CreatureSpriteMap[creature.index] = textureList.Count;
+            textureList.Add(PreparePixels(sprite.GetPixels(), sprite.width, sprite.height));
+
+            if (stopWatch.ElapsedMilliseconds > ContentLoader.LoadFrameTimeout)
+            {
+                yield return null;
+                stopWatch.Reset();
+                stopWatch.Start();
+            }
+        }
         if (missingCreatureArt > 0)
             Debug.LogFormat("Engraving art: {0} creatures have no optional illustration and will use DF tile glyphs. Examples: {1}.",
                 missingCreatureArt, string.Join(", ", missingArtExamples));
@@ -615,13 +599,10 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
                 continue;
             }
 
-            if(sprite.width != 32 || sprite.height != 32)
-                TextureScale.Bilinear(sprite, 32, 32);
-
             ItemSpriteMap[item.mat_pair] = textureList.Count;
             if (item.mat_pair.mat_type == 53) //Plant
                 PlantSpriteMap[item.mat_pair.mat_index] = textureList.Count;
-            textureList.Add(sprite);
+            textureList.Add(PreparePixels(sprite.GetPixels(), sprite.width, sprite.height));
 
             if (stopWatch.ElapsedMilliseconds > ContentLoader.LoadFrameTimeout)
             {
@@ -631,18 +612,69 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
             }
         }
 
-        imageSpriteArray = new Texture2DArray(32, 32, textureList.Count, TextureFormat.ARGB32, false);
-        imageSpriteNormals = new Texture2DArray(32, 32, textureList.Count, TextureFormat.ARGB32, false);
-        for (int i = 0; i < textureList.Count; i++)
+        bool completed = false;
+        try
         {
-            var pixels = textureList[i].GetPixels();
-            imageSpriteArray.SetPixels(pixels, i);
-            imageSpriteNormals.SetPixels(TextureTools.Bevel(pixels, 32,32), i);
+            imageSpriteArray = new Texture2DArray(32, 32, textureList.Count, TextureFormat.ARGB32, false);
+            imageSpriteNormals = new Texture2DArray(32, 32, textureList.Count, TextureFormat.ARGB32, false);
+            for (int i = 0; i < textureList.Count; i++)
+            {
+                var pixels = textureList[i];
+                imageSpriteArray.SetPixels(pixels, i);
+                imageSpriteNormals.SetPixels(TextureTools.Bevel(pixels, 32,32), i);
+            }
+            imageSpriteArray.Apply();
+            imageSpriteNormals.Apply();
+            Shader.SetGlobalTexture("_ImageAtlas", imageSpriteArray);
+            Shader.SetGlobalTexture("_ImageBumpAtlas", imageSpriteNormals);
+            completed = true;
         }
-        imageSpriteArray.Apply();
-        imageSpriteNormals.Apply();
-        Shader.SetGlobalTexture("_ImageAtlas", imageSpriteArray);
-        Shader.SetGlobalTexture("_ImageBumpAtlas", imageSpriteNormals);
+        finally
+        {
+            if (!completed) ReleaseImages();
+        }
+    }
+
+    private static Color[] PreparePixels(Color[] pixels, int width, int height)
+    {
+        if (width == 32 && height == 32) return pixels;
+        pixels = TextureScale.ThreadedScale(pixels, width, height, 32, 32, true);
+        // Preserve the old ARGB32 resize rounding before generating bevel normals.
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            var color = pixels[i];
+            for (int channel = 0; channel < 4; channel++)
+                color[channel] = Mathf.Floor(Mathf.Clamp01(color[channel]) * 255f + 0.5f) / 255f;
+            pixels[i] = color;
+        }
+        return pixels;
+    }
+
+    private void ReleaseImages()
+    {
+        if (imageSpriteArray != null && Shader.GetGlobalTexture("_ImageAtlas") == imageSpriteArray)
+            Shader.SetGlobalTexture("_ImageAtlas", null);
+        if (imageSpriteNormals != null && Shader.GetGlobalTexture("_ImageBumpAtlas") == imageSpriteNormals)
+            Shader.SetGlobalTexture("_ImageBumpAtlas", null);
+        DestroyGenerated(imageSpriteArray);
+        DestroyGenerated(imageSpriteNormals);
+        imageSpriteArray = null;
+        imageSpriteNormals = null;
+        foreach (var image in generatedImages.Values) DestroyGenerated(image);
+        foreach (var meshes in generatedMeshes.Values)
+            foreach (var mesh in meshes.Values) DestroyGenerated(mesh);
+        generatedImages.Clear();
+        generatedMeshes.Clear();
+        CreatureSpriteMap.Clear();
+        PlantSpriteMap.Clear();
+        ItemSpriteMap.Clear();
+    }
+
+    private static void DestroyGenerated(UnityEngine.Object resource)
+    {
+        if (resource == null) return;
+        if (Application.isPlaying) Destroy(resource);
+        else DestroyImmediate(resource);
     }
 
     #endregion
@@ -653,7 +685,19 @@ public class ImageManager : MonoBehaviour, ISessionContentParticipant
         sessionRegistration?.Dispose();
         registeredSession = SessionRuntime.Current;
         sessionRegistration = ContentLoader.RegisterLoadCallback(LoadImages);
+        SessionRuntime.AfterStop(ReleaseImages);
     }
     private System.IDisposable sessionRegistration;
-    private void OnDestroy() { sessionRegistration?.Dispose(); }
+    private void OnDisable()
+    {
+        // Script reload also disables editor components; release previews before their managed references are lost.
+        if (!Application.isPlaying) ReleaseImages();
+    }
+
+    private void OnDestroy()
+    {
+        sessionRegistration?.Dispose();
+        ReleaseImages();
+        if (_instance == this) _instance = null;
+    }
 }

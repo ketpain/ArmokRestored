@@ -42,7 +42,7 @@ public class CameraRotateVertical : MonoBehaviour
 
     void Awake()
     {
-        gameMap = FindObjectOfType<GameMap>();
+        gameMap = FindAnyObjectByType<GameMap>();
     }
 
     void Update()

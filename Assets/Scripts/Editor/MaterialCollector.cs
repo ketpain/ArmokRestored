@@ -22,20 +22,24 @@ namespace MaterialStore
             if (state != PlayModeStateChange.ExitingEditMode)
                 return;
 
-            if (Resources.Load<Texture2DArray>("shapeTextures") != null &&
-                Resources.Load<Texture2DArray>("patternTextures") != null &&
-                Resources.Load<MaterialCollection>("materialDefinitions") != null)
-                return;
-
             try
             {
-                BuildMaterialCollection();
+                EnsureMaterialCollection();
             }
             catch (Exception exception)
             {
                 EditorApplication.isPlaying = false;
                 Debug.LogException(exception);
             }
+        }
+
+        public static void EnsureMaterialCollection()
+        {
+            if (Resources.Load<Texture2DArray>("shapeTextures") != null &&
+                Resources.Load<Texture2DArray>("patternTextures") != null &&
+                Resources.Load<MaterialCollection>("materialDefinitions") != null)
+                return;
+            BuildMaterialCollection();
         }
 
         private static List<Texture2D> albedoList;

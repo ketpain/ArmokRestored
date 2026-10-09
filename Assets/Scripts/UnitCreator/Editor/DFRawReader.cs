@@ -148,6 +148,7 @@ public class DFRawReader : EditorWindow
                 MaterialCollector.BuildMaterialCollection();
             MaterialCollection.Instance.PopulateMatTextures();
             client.Disconnect();
+            ContentPreviewPreparation.Prepare();
             //foreach (var raw in CreatureRaws.Instance)
             //{
             //    raw.creature_id = BodyDefinition.GetCorrectedCreatureID(raw);

@@ -13,7 +13,7 @@ public class CameraScale : MonoBehaviour
 
     void Awake()
     {
-        gameMap = FindObjectOfType<GameMap>();
+        gameMap = FindAnyObjectByType<GameMap>();
     }
 
     void Update()

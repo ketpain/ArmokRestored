@@ -10,7 +10,7 @@ public class CreatureSpriteTester : MonoBehaviour
     public Material mat;
     private Matrix4x4[] matrices = new Matrix4x4[16];
     public Mesh mesh;
-    public MaterialPropertyBlock properties;
+    [System.NonSerialized] public MaterialPropertyBlock properties;
     public int[] indices = new int[16];
     public Color[] colors = new Color[16];
     private Vector4[] vectors = new Vector4[16];

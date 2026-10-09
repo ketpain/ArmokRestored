@@ -13,14 +13,14 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
         get
         {
             if (_instance == null)
-                _instance = FindObjectOfType<ItemManager>();
+                _instance = FindAnyObjectByType<ItemManager>();
             if (_instance == null)
                 _instance = Instantiate(Resources.Load<ItemManager>("ItemManager"));
             return _instance;
         }
     }
 
-    public bool loaded = false;
+    [NonSerialized] public bool loaded = false;
 
     static Dictionary<MatPairStruct, ItemModel> itemPrefabs = new Dictionary<MatPairStruct, ItemModel>();
 
@@ -30,9 +30,10 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
     [SerializeField]
     private ProgressBar subProgressBar;
 
-    IEnumerator LoadItems()
+    public IEnumerator LoadItems()
     {
         loaded = false;
+        itemPrefabs.Clear();
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         var itemList = ItemRaws.Instance.ItemList;
         if (mainProgressBar != null)
@@ -81,26 +82,12 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
             _instance = this;
         }
 
-        if(!Application.isPlaying)
-        {
-            ForceLoadItems();
-        }
-        else RegisterSessionContent();
-    }
-
-    private void ForceLoadItems()
-    {
-        var loader = LoadItems();
-        while (loader.MoveNext())
-        {
-
-        }
-        Debug.Log("Loaded item models.");
+        RegisterSessionContent();
     }
 
     private void LateUpdate()
     {
-        UpdateVisibility();
+        if (Application.isPlaying) UpdateVisibility();
     }
 
     Dictionary<int, ItemModel> sceneItems = new Dictionary<int, ItemModel>();
@@ -235,9 +222,6 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
 
         var prefab = Instance.defaultItem;
 
-        if (itemPrefabs.Count == 0)
-            Instance.ForceLoadItems();
-
         if (!itemPrefabs.ContainsKey(type))
             type = new MatPairStruct(type.mat_type, -1);
         if (!itemPrefabs.ContainsKey(type))
@@ -328,7 +312,22 @@ public class ItemManager : MonoBehaviour, ISessionContentParticipant
         sessionRegistration?.Dispose();
         registeredSession = SessionRuntime.Current;
         sessionRegistration = ContentLoader.RegisterLoadCallback(LoadItems);
+        SessionRuntime.AfterStop(ClearContent);
     }
     private System.IDisposable sessionRegistration;
-    private void OnDestroy() { sessionRegistration?.Dispose(); }
+    private void ClearContent()
+    {
+        loaded = false;
+        itemPrefabs.Clear();
+    }
+
+    private void OnDestroy()
+    {
+        sessionRegistration?.Dispose();
+        if (_instance == this)
+        {
+            ClearContent();
+            _instance = null;
+        }
+    }
 }

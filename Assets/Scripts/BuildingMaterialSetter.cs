@@ -11,7 +11,7 @@ public class BuildingMaterialSetter : MonoBehaviour
     {
         var materialPattern = Resources.Load<Texture2DArray>("patternTextures");
         Shader.SetGlobalTexture("_MatTexArray", materialPattern);
-        foreach (var part in FindObjectsOfType<Building.MaterialPart>())
+        foreach (var part in FindObjectsByType<Building.MaterialPart>())
         {
             var renderer = part.GetComponent<MeshRenderer>();
             MaterialPropertyBlock prop = new MaterialPropertyBlock();
@@ -19,7 +19,7 @@ public class BuildingMaterialSetter : MonoBehaviour
             prop.SetFloat("_MatIndex", set.patternIndex);
             renderer.SetPropertyBlock(prop);
         }
-        foreach (var part in FindObjectsOfType<ItemModel>())
+        foreach (var part in FindObjectsByType<ItemModel>())
         {
             var renderers = part.GetComponentsInChildren<MeshRenderer>();
             MaterialPropertyBlock prop = new MaterialPropertyBlock();

@@ -17,9 +17,9 @@ fixed occlusion = lerp(1, tex2D(_OcclusionMap, texcoords.xy), _OcclusionStrength
 
 #ifdef _PATTERN_MASK
 fixed4 pattern_mask = tex2D(_PatternMask, texcoords.zw);
-albedo = lerp(albedo, _Color1.rgb, pattern_mask.r);
-albedo = lerp(albedo, _Color2.rgb, pattern_mask.g);
-albedo = lerp(albedo, _Color3.rgb, pattern_mask.b);
+albedo = lerp(albedo, UNITY_ACCESS_INSTANCED_PROP(MyProperties, _Color1).rgb, pattern_mask.r);
+albedo = lerp(albedo, UNITY_ACCESS_INSTANCED_PROP(MyProperties, _Color2).rgb, pattern_mask.g);
+albedo = lerp(albedo, UNITY_ACCESS_INSTANCED_PROP(MyProperties, _Color3).rgb, pattern_mask.b);
 #endif
 
 albedo = dfTex.rgb * albedo;

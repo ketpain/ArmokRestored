@@ -17,7 +17,7 @@ public class DisplayManager : MonoBehaviour
     {
         if (!displayManager)
         {
-            displayManager = FindObjectOfType(typeof(DisplayManager)) as DisplayManager;
+            displayManager = FindAnyObjectByType<DisplayManager>();
             if (!displayManager)
                 Debug.LogError("There needs to be one active DisplayManager script on a GameObject in your scene.");
         }

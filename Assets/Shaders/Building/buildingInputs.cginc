@@ -3,9 +3,6 @@
 float _Amount;
 
 half4       _Color;
-half4 _Color1;
-half4 _Color2;
-half4 _Color3;
 sampler2D   _PatternMask;
 
 sampler2D   _MainTex;
@@ -40,6 +37,9 @@ UNITY_DEFINE_INSTANCED_PROP(int, _ShapeIndex)
 #define _ShapeIndex_arr MyProperties
 UNITY_DEFINE_INSTANCED_PROP(fixed4, _JobColor)
 #define _JobColor_arr MyProperties
+UNITY_DEFINE_INSTANCED_PROP(half4, _Color1)
+UNITY_DEFINE_INSTANCED_PROP(half4, _Color2)
+UNITY_DEFINE_INSTANCED_PROP(half4, _Color3)
 UNITY_INSTANCING_BUFFER_END(MyProperties)
 
 struct Input {

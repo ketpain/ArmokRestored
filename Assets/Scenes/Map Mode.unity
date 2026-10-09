@@ -12029,7 +12029,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8192
   stopNaNPropagation: 1
-  finalBlitToCameraTarget: 1
+  finalBlitToCameraTarget: 0
   antialiasingMode: 0
   temporalAntialiasing:
     jitterSpread: 0.75
@@ -16094,7 +16094,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   stopNaNPropagation: 1
-  finalBlitToCameraTarget: 1
+  finalBlitToCameraTarget: 0
   antialiasingMode: 0
   temporalAntialiasing:
     jitterSpread: 0.75

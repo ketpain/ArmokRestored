@@ -52,6 +52,16 @@ try {
     if ($playerSettings -notmatch '(?m)^\s*activeInputHandler:\s*1\s*$') { $failures.Add('Active Input Handling must be Input System Package (New).') }
     $graphics = Get-Content ProjectSettings/GraphicsSettings.asset -Raw
     if ($graphics -notmatch 'm_CustomRenderPipeline:\s*\{fileID: 0\}') { $failures.Add('Graphics settings must use the Built-in Render Pipeline.') }
+    # ContentCatalog selects these shaders by name, so scene dependencies do not guarantee inclusion.
+    $includedShaders = [regex]::Match($graphics, '(?m)^  m_AlwaysIncludedShaders:\r?\n(?:  -[^\r\n]*\r?\n)*').Value
+    foreach ($shaderPath in @('Assets/Shaders/Building/SingleImage Transparent.shader',
+        'Assets/Shaders/Building/BuildingShader Transparent.shader')) {
+        $shaderMeta = Get-Content -LiteralPath ($shaderPath + '.meta') -Raw
+        $shaderGuid = [regex]::Match($shaderMeta, '(?m)^guid: ([0-9a-f]{32})').Groups[1].Value
+        if (-not $shaderGuid -or $includedShaders -notmatch $shaderGuid) {
+            $failures.Add("Runtime-selected shader must be in Always Included Shaders: $shaderPath")
+        }
+    }
     $quality = Get-Content ProjectSettings/QualitySettings.asset -Raw
     foreach ($pipeline in [regex]::Matches($quality, '(?m)^\s*customRenderPipeline:.*$')) {
         if ($pipeline.Value -notmatch '\{fileID: 0\}') { $failures.Add('A Quality preset overrides the Built-in Render Pipeline.') }

@@ -21,7 +21,7 @@ public class UpdateChecker : MonoBehaviour
         {
             yield return webRequest.SendWebRequest();
 
-            if(webRequest.isNetworkError)
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError)
             {
                 Debug.LogError("Error checking for updates: " + webRequest.error);
             }

@@ -127,6 +127,10 @@ namespace Armok.LiveTests
                 Assert.That(HasMapGeometry(), Is.True, "The session reached Ready but produced no active map geometry.");
                 yield return CheckInspection(iteration);
                 CaptureWorkers();
+                var imageManager = Singleton("ImageManager");
+                var imageAtlas = (Texture2DArray)Field(imageManager, "imageSpriteArray");
+                var normalAtlas = (Texture2DArray)Field(imageManager, "imageSpriteNormals");
+                Assert.That(imageAtlas != null && normalAtlas != null, Is.True);
                 string sprites = SpriteHashes();
                 Assert.That(sprites, Is.Not.Empty, "The live fixture did not produce creature pages.");
                 if (firstSprites == null) firstSprites = sprites;
@@ -149,6 +153,7 @@ namespace Armok.LiveTests
                 Assert.That(session.Stage, Is.EqualTo(SessionStage.Disconnected));
                 Assert.That(session.ContentCallbackCount, Is.Zero);
                 Assert.That(LegacyType("ContentCatalog").GetProperty("Current").GetValue(null), Is.Null, "Stopped content must be unpublished.");
+                Assert.That(imageAtlas == null && normalAtlas == null, Is.True, "Stopped image preparation must release its arrays.");
                 messages.Add($"Session {iteration}: callbacks={callbackCount}; all captured workers stopped.");
                 workers.Clear();
             }

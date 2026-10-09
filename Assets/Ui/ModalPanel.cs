@@ -36,7 +36,7 @@ public class ModalPanel : MonoBehaviour
         {
             if (!modalPanel)
             {
-                modalPanel = FindObjectOfType(typeof(ModalPanel)) as ModalPanel;
+                modalPanel = FindAnyObjectByType<ModalPanel>();
                 if (!modalPanel)
                     Debug.LogError("There needs to be one active ModalPanel script on a GameObject in your scene.");
             }

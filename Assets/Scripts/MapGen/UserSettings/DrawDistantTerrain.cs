@@ -10,7 +10,7 @@ namespace UserSettings
         {
             slider.value = (int)GameSettings.Instance.rendering.distantTerrainDetail;
             valueLabel.text = GameSettings.Instance.rendering.distantTerrainDetail.ToString();
-            worldMap = FindObjectOfType<WorldMapMaker>();
+            worldMap = FindAnyObjectByType<WorldMapMaker>();
         }
 
         protected override void OnValueChanged(float value)

@@ -18,6 +18,7 @@ The generated `shapeTextures`, `patternTextures`, `materialDefinitions`, and DF 
 
 - Keep Active Input Handling set to Input System Package (New).
 - Keep Built-in rendering selected in Graphics settings and every Quality preset. Existing terrain/material surface shaders need this configuration.
+- Keep `Art/SingleImage Transparent` and `Building/Transparent` in Graphics > Always Included Shaders. `ContentCatalog` selects these by name at runtime; those lookups alone do not include the shaders in a player build. `VerifyCheckout.ps1` checks both entries.
 - Preserve the current reload-disabled Play Mode configuration while validating repeat sessions; explicitly test other reload modes when changing lifecycle code.
 
 ## Verification procedure
@@ -47,6 +48,20 @@ The corresponding editor API is [`ModelImporter.SetPreBakeCollisionMesh(isConvex
 `ImageManager` loads creature illustrations for engravings and decorative images from `Assets/Resources/Images/Creatures`. These are separate from the map's creature sprites. Exact creature tokens take precedence; numbered generated creatures use their generic artwork when available (for example, `DEMON_22` uses `DEMON.png`). The lookup also accepts the older bird and marmot filenames and the bundled peregrine falcon spelling.
 
 Creatures without an illustration retain the existing DF tile-glyph fallback. This is expected for some ordinary creatures, modded species, and world-generated creatures. Loading reports one informational summary with a count and a few examples instead of a warning for every missing illustration. To add dedicated art, supply a texture named after the creature token in that resource folder and enable Read/Write in its import settings; atlas creation reads the source pixels.
+
+## Windows release shutdown
+
+Keep **Directly to Camera Target** disabled on both Map Mode cameras' Post Process Layer components (`finalBlitToCameraTarget: 0`). With Unity 6000.6.0f1 and Post Processing 3.5.4, enabling this fast path reproduced a native `0xC0000005` exit on the tested Windows player, including a camera-and-cube scene with no DF connection. The normal final-copy path preserves the effects and threaded rendering. It adds the final image copy that the fast path skips; no performance benefit is claimed for this compatibility setting.
+
+Verify shutdown in a normal release build and record the process exit code after quitting. Window closure and successful build output alone do not establish a clean exit. Development and batch-mode runs did not reproduce this failure. The native engine defect itself has not been identified; keep this setting until an engine/package update passes the same release checks. Reproduction details and results are recorded in `CurrentTasks.md`.
+
+## Editor content previews
+
+Opening a scene or recompiling no longer runs the item, decoration, or image loaders in `Awake`. Runtime preparation belongs to the session's LoadingContent stage. The managers retain edit-mode lifecycle callbacks for preview ownership and cleanup; their live update loops run only in Play Mode.
+
+Use `Mytools > Prepare Content Previews` outside Play Mode to prepare item models, decoration shapes, and engraving image arrays from the currently available DF definitions. DF Raw Reader runs this command after its Read Raws action so equipment previews remain available. Its standalone previews retain the generic decoration-shape fallback when no language/shape definitions are available. Repeat preparation after changing preview artwork or definitions; there is no automatic scene-wide rebuild.
+
+Preparation creates missing material resources, while `Mytools > Build Material Collection` explicitly rebuilds them after material-source changes. Missing-resource generation before Play and material preparation in the Windows release command remain in place. Image preparation resizes CPU pixels without modifying imported artwork or creating a texture for each glyph. The image manager owns its generated arrays, images, and meshes and releases them on rebuild, session stop, or destruction. Editor disable and script reload also release preview resources; prepare them again explicitly afterward.
 
 ## Map screenshots and definition exports
 

@@ -59,7 +59,7 @@ public class GameMap : MonoBehaviour
 
     BlockMesher mesher;
 
-    public BlockMeshSet[,,] mapMeshes;
+    [System.NonSerialized] public BlockMeshSet[,,] mapMeshes;
 
     // Dirty flags for those meshes
     bool[,,] blockDirtyBits;
@@ -97,9 +97,8 @@ public class GameMap : MonoBehaviour
         readyRegistration = session.OnReady(OnConnectToDF);
         SessionRuntime.Stopping += StopPresentation;
 
-#if DEVELOPMENT_BUILD
-        Debug.Log("Dev build");
-#endif
+        if (Debug.isDebugBuild && !Application.isEditor)
+            Debug.Log("Dev build");
         if (dfScreen != null)
             dfScreen.SetActive(GameSettings.Instance.game.showDFScreen);
     }
@@ -122,20 +121,20 @@ public class GameMap : MonoBehaviour
         }
     }
 
-    [System.Diagnostics.Conditional("DEVELOPMENT_BUILD"), System.Diagnostics.Conditional("UNITY_EDITOR")]
+    [System.Diagnostics.Conditional("UNITY_INCLUDE_INSTRUMENTATION")]
     public static void BeginSample(string name)
     {
         if (IsMainThread)
             UnityEngine.Profiling.Profiler.BeginSample(name);
     }
-    [System.Diagnostics.Conditional("DEVELOPMENT_BUILD"), System.Diagnostics.Conditional("UNITY_EDITOR")]
+    [System.Diagnostics.Conditional("UNITY_INCLUDE_INSTRUMENTATION")]
     public static void BeginSample(string name, Object targetObject)
     {
         if (IsMainThread)
             UnityEngine.Profiling.Profiler.BeginSample(name, targetObject);
     }
 
-    [System.Diagnostics.Conditional("DEVELOPMENT_BUILD"), System.Diagnostics.Conditional("UNITY_EDITOR")]
+    [System.Diagnostics.Conditional("UNITY_INCLUDE_INSTRUMENTATION")]
     public static void EndSample()
     {
         if (IsMainThread)

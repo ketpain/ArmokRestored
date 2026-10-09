@@ -12,7 +12,7 @@ public class DecorationManager : MonoBehaviour, ISessionContentParticipant
         get
         {
             if (_instance == null)
-                _instance = FindObjectOfType<DecorationManager>();
+                _instance = FindAnyObjectByType<DecorationManager>();
             if (_instance == null)
                 _instance = Instantiate(Resources.Load<DecorationManager>("DecorationManager"));
             return _instance;
@@ -43,20 +43,12 @@ public class DecorationManager : MonoBehaviour, ISessionContentParticipant
             _instance = this;
         }
 
-        if (!Application.isPlaying)
-        {
-            var loader = LoadShapes();
-            while (loader.MoveNext())
-            {
-
-            }
-            Debug.Log("Loaded shapes.");
-        }
-        else RegisterSessionContent();
+        RegisterSessionContent();
     }
 
-    private IEnumerator LoadShapes()
+    public IEnumerator LoadShapes()
     {
+        shapes.Clear();
         if (DFConnection.Instance == null)
             yield break;
         if (DFConnection.Instance.NetLanguageList == null)
@@ -119,7 +111,12 @@ public class DecorationManager : MonoBehaviour, ISessionContentParticipant
         sessionRegistration?.Dispose();
         registeredSession = SessionRuntime.Current;
         sessionRegistration = ContentLoader.RegisterLoadCallback(LoadShapes);
+        SessionRuntime.AfterStop(shapes.Clear);
     }
     private System.IDisposable sessionRegistration;
-    private void OnDestroy() { sessionRegistration?.Dispose(); }
+    private void OnDestroy()
+    {
+        sessionRegistration?.Dispose();
+        if (_instance == this) _instance = null;
+    }
 }
